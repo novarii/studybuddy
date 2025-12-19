@@ -128,6 +128,12 @@ export const api = {
 
   documents: {
     /**
+     * List all documents for a course
+     */
+    listByCourse: (token: string, courseId: string) =>
+      fetchWithAuth<Document[]>(`/courses/${courseId}/documents`, { token }),
+
+    /**
      * Upload a PDF document to a course
      */
     upload: (
@@ -147,5 +153,11 @@ export const api = {
      */
     get: (token: string, documentId: string) =>
       fetchWithAuth<Document>(`/documents/${documentId}`, { token }),
+
+    /**
+     * Delete a document
+     */
+    delete: (token: string, documentId: string) =>
+      fetchWithAuth<void>(`/documents/${documentId}`, { token, method: "DELETE" }),
   },
 };

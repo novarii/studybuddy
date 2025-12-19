@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SunIcon, MoonIcon, LoaderIcon } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar/Sidebar";
 import { MainContent } from "@/components/MainContent/MainContent";
@@ -12,10 +12,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { useCourses } from "@/hooks/useCourses";
 import { useDocumentUpload } from "@/hooks/useDocumentUpload";
+import { useDocuments } from "@/hooks/useDocuments";
 import { useResizePanel } from "@/hooks/useResizePanel";
 import { useChat } from "@/hooks/useChat";
 import { darkModeColors, lightModeColors } from "@/constants/colors";
-import type { Course, Material } from "@/types";
+import type { Course } from "@/types";
 
 export const StudyBuddyClient = () => {
   const { toast } = useToast();
@@ -24,7 +25,6 @@ export const StudyBuddyClient = () => {
   const [isSlidesCollapsed, setIsSlidesCollapsed] = useState(false);
   const [isVideoCollapsed, setIsVideoCollapsed] = useState(false);
   const [currentCourseId, setCurrentCourseId] = useState<string>("");
-  const [materials, setMaterials] = useState<Material[]>([]);
   const [isCourseSelectOpen, setIsCourseSelectOpen] = useState(false);
   const [isMaterialsDialogOpen, setIsMaterialsDialogOpen] = useState(false);
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
@@ -58,7 +58,17 @@ export const StudyBuddyClient = () => {
     clearCompleted,
   } = useDocumentUpload(currentCourseId);
 
+  const { documents, refetch: refetchDocuments, deleteDocument } = useDocuments(currentCourseId);
+
   const { panelWidth, isResizing, handleMouseDown } = useResizePanel(400, 800, 400);
+
+  // Refetch documents when uploads complete
+  useEffect(() => {
+    const hasCompletedUpload = uploads.some((u) => u.status === "success");
+    if (hasCompletedUpload) {
+      refetchDocuments();
+    }
+  }, [uploads, refetchDocuments]);
 
   // Set current course when userCourses loads and no course is selected
   if (!currentCourseId && userCourses.length > 0) {
@@ -110,33 +120,16 @@ export const StudyBuddyClient = () => {
     document.getElementById("file-upload-input")?.click();
   };
 
-  const getPdfMaterials = () => {
-    return materials.filter((m) => m.courseId === currentCourseId && m.type === "pdf");
-  };
-
-  const getVideoMaterials = () => {
-    return materials.filter((m) => m.courseId === currentCourseId && m.type === "video");
-  };
-
-  const handleDeleteMaterial = (materialId: string) => {
+  const handleDeleteDocument = async (documentId: string) => {
     if (!currentCourse) return;
-    const material = materials.find((m) => m.id === materialId);
-    setMaterials(materials.filter((m) => m.id !== materialId));
-
-    if (material) {
+    const doc = documents.find((d) => d.id === documentId);
+    const success = await deleteDocument(documentId);
+    if (success && doc) {
       toast({
-        title: "Material deleted",
-        description: `${material.name} has been removed from ${currentCourse.code}`,
+        title: "Document deleted",
+        description: `${doc.filename} has been removed from ${currentCourse.code}`,
       });
     }
-  };
-
-  const handleMoveMaterial = (materialId: string, targetCourseId: string) => {
-    setMaterials(materials.map((m) => (m.id === materialId ? { ...m, courseId: targetCourseId } : m)));
-  };
-
-  const getCurrentCourseMaterials = () => {
-    return materials.filter((m) => m.courseId === currentCourseId);
   };
 
   // Show loading state while courses are loading
@@ -197,8 +190,8 @@ export const StudyBuddyClient = () => {
             colors={colors}
             pageNumber={pageNumber}
             isPlaying={isPlaying}
-            hasPdfMaterials={getPdfMaterials().length > 0}
-            hasVideoMaterials={getVideoMaterials().length > 0}
+            hasPdfMaterials={documents.length > 0}
+            hasVideoMaterials={false}
             onMouseDown={handleMouseDown}
             onToggleSlides={() => setIsSlidesCollapsed(!isSlidesCollapsed)}
             onToggleVideo={() => setIsVideoCollapsed(!isVideoCollapsed)}
@@ -239,13 +232,11 @@ export const StudyBuddyClient = () => {
       {currentCourse && (
         <MaterialsDialog
           isOpen={isMaterialsDialogOpen}
-          materials={getCurrentCourseMaterials()}
-          courses={userCourses}
+          documents={documents}
           currentCourse={currentCourse}
           colors={colors}
           onClose={() => setIsMaterialsDialogOpen(false)}
-          onDeleteMaterial={handleDeleteMaterial}
-          onMoveMaterial={handleMoveMaterial}
+          onDeleteDocument={handleDeleteDocument}
         />
       )}
 
