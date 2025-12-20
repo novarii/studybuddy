@@ -64,10 +64,21 @@ export const CourseDropdown: React.FC<CourseDropdownProps> = ({
               style={{
                 color: colors.primaryText,
                 backgroundColor: currentCourse.id === course.id ? colors.hover : "transparent",
-                fontWeight: currentCourse.id === course.id ? "bold" : "normal",
               }}
             >
-              <span className="truncate flex-1">{course.code}</span>
+              <div className="flex-1 min-w-0">
+                <span
+                  className="truncate block text-sm"
+                  style={{ fontWeight: currentCourse.id === course.id ? 600 : 400 }}
+                >
+                  {course.code}
+                </span>
+                {course.instructor && (
+                  <span className="truncate block text-xs" style={{ color: colors.secondaryText }}>
+                    {course.instructor}
+                  </span>
+                )}
+              </div>
               {hoveredCourseId === course.id && (
                 <button
                   onClick={(e) => {

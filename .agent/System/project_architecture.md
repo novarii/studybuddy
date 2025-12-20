@@ -12,7 +12,7 @@ StudyBuddy is an AI-powered study assistant that helps students learn from lectu
 | React | React | 19.2.1 |
 | Language | TypeScript | 5.x |
 | Styling | Tailwind CSS | 4.x |
-| UI Components | Radix UI | Various |
+| UI Components | Radix UI + shadcn/ui | Various |
 | Authentication | Clerk | 6.36.4 |
 | Build Tool | Turbopack | (built-in) |
 
@@ -20,36 +20,55 @@ StudyBuddy is an AI-powered study assistant that helps students learn from lectu
 
 ```
 studybuddy-frontend/
-├── app/                      # Next.js App Router
-│   ├── layout.tsx           # Root layout with ClerkProvider + Toaster
-│   ├── page.tsx             # Home page (protected, redirects to sign-in)
-│   ├── globals.css          # Global styles, theme variables, animations
-│   ├── sign-in/             # Clerk sign-in page
-│   │   └── [[...sign-in]]/page.tsx
-│   └── sign-up/             # Clerk sign-up page
-│       └── [[...sign-up]]/page.tsx
+├── app/                          # Next.js App Router
+│   ├── layout.tsx               # Root layout with ClerkProvider + Toaster
+│   ├── page.tsx                 # Home page (renders StudyBuddyClient)
+│   ├── globals.css              # Global styles, theme variables, animations
+│   ├── sign-in/[[...sign-in]]/  # Clerk sign-in page
+│   └── sign-up/[[...sign-up]]/  # Clerk sign-up page
 ├── components/
-│   └── ui/                  # Radix-based UI component library
-│       ├── button.tsx       # Button with variants (cva)
-│       ├── card.tsx         # Card container components
-│       ├── dialog.tsx       # Modal dialog
-│       ├── dropdown-menu.tsx # Dropdown menu
-│       ├── input.tsx        # Text input
-│       ├── textarea.tsx     # Multiline text input
-│       ├── scroll-area.tsx  # Custom scrollbar
-│       ├── toast.tsx        # Toast notification
-│       └── toaster.tsx      # Toast container
+│   ├── StudyBuddyClient.tsx     # Main app container (orchestrates all state)
+│   ├── Sidebar/                 # Left sidebar
+│   │   ├── Sidebar.tsx          # Course info, theme toggle, collapse controls
+│   │   └── CourseDropdown.tsx   # Course switcher dropdown
+│   ├── MainContent/             # Center chat area
+│   │   └── MainContent.tsx      # Chat messages, input, drag-and-drop upload
+│   ├── RightPanel/              # Right panel for materials
+│   │   ├── RightPanel.tsx       # Resizable container
+│   │   ├── SlidesSection.tsx    # PDF viewer placeholder
+│   │   └── VideoSection.tsx     # Video player placeholder
+│   ├── Chat/
+│   │   └── AnimatedText.tsx     # Typing animation for AI responses
+│   ├── Dialogs/
+│   │   ├── CourseSelectDialog.tsx  # Command palette for course selection
+│   │   └── MaterialsDialog.tsx     # Manage uploaded documents
+│   ├── EmptyState/
+│   │   └── EmptyState.tsx       # Shown when no courses selected
+│   └── ui/                      # Radix-based UI component library
+│       ├── button.tsx           # Button with variants (cva)
+│       ├── command.tsx          # Command palette (cmdk)
+│       ├── dialog.tsx           # Modal dialog
+│       ├── dropdown-menu.tsx    # Dropdown menu
+│       ├── scroll-area.tsx      # Custom scrollbar
+│       ├── textarea.tsx         # Multiline text input
+│       ├── toast.tsx            # Toast notification
+│       └── toaster.tsx          # Toast container
 ├── hooks/
-│   └── use-toast.ts         # Toast state management hook
+│   ├── useCourses.ts            # Course management with API integration
+│   ├── useDocuments.ts          # Document fetching for current course
+│   ├── useDocumentUpload.ts     # File upload with progress tracking
+│   ├── useChat.ts               # Chat messages state management
+│   ├── useResizePanel.ts        # Panel resize logic
+│   └── use-toast.ts             # Toast state management
 ├── lib/
-│   └── utils.ts             # cn() utility for class merging
+│   ├── api.ts                   # API client with Clerk auth
+│   └── utils.ts                 # cn() utility for class merging
 ├── types/
-│   └── index.ts             # Shared TypeScript types
+│   └── index.ts                 # Shared TypeScript types
 ├── constants/
-│   └── colors.ts            # Dark/light mode color schemes
-├── proxy.ts                 # Clerk auth proxy (route protection)
-├── .env.local               # Environment variables (not committed)
-└── .env.example             # Environment template
+│   └── colors.ts                # Dark/light mode color schemes
+├── proxy.ts                     # Clerk auth proxy (route protection)
+└── .env.local                   # Environment variables (not committed)
 ```
 
 ## Authentication Flow
@@ -71,6 +90,27 @@ studybuddy-frontend/
 - Public routes: `/sign-in`, `/sign-up`, `/api/webhook`
 - All other routes require authentication
 - `ClerkProvider` wraps the entire app in `layout.tsx`
+
+## Application Layout
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                         StudyBuddyClient                          │
+├────────────┬─────────────────────────────┬───────────────────────┤
+│  Sidebar   │        MainContent          │     RightPanel        │
+│ (280/60px) │       (flex-1)              │    (resizable)        │
+├────────────┼─────────────────────────────┼───────────────────────┤
+│ Course     │  Header (StudyBuddy)        │ Slides Section        │
+│ Dropdown   │                             │ (PDF viewer)          │
+│            │  Chat Messages              │                       │
+│ Course     │  (ScrollArea)               ├───────────────────────┤
+│ Info       │                             │ Video Section         │
+│            │  Upload Progress            │ (Video player)        │
+│ Dark/Light │                             │                       │
+│ Toggle     │  Message Input              │ Upload Button         │
+│            │  (Textarea + Send)          │                       │
+└────────────┴─────────────────────────────┴───────────────────────┘
+```
 
 ## Styling System
 
@@ -118,6 +158,7 @@ const buttonVariants = cva("base-classes", {
 
 ```typescript
 // types/index.ts
+
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
@@ -126,18 +167,25 @@ type ChatMessage = {
   isTyping?: boolean;
 };
 
+// Matches backend CourseResponse schema
 type Course = {
   id: string;
-  name: string;
-  content: Array<{ id: string; title: string; children: string[] }>;
+  code: string;        // e.g., "CSC 242"
+  title: string;       // e.g., "Introduction to AI"
+  instructor: string | null;
 };
 
-type Material = {
+// Document from backend
+type Document = {
   id: string;
-  name: string;
-  file: File;
-  courseId: string;
-  type: "pdf" | "video";
+  course_id: string;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  page_count: number | null;
+  status: "uploaded" | "failed";
+  created_at: string;
+  updated_at: string;
 };
 
 type ColorScheme = {
@@ -155,18 +203,56 @@ type ColorScheme = {
 };
 ```
 
+## Custom Hooks
+
+| Hook | Purpose | Key Features |
+|------|---------|--------------|
+| `useCourses` | Course management | Fetches all courses, user's courses; add/remove courses via API |
+| `useDocuments` | Document listing | Fetches documents for current course; delete document |
+| `useDocumentUpload` | File upload | Drag-and-drop, progress tracking, upload to backend |
+| `useChat` | Chat state | Messages, input value, send message, delete history |
+| `useResizePanel` | Panel resizing | Mouse drag to resize right panel |
+| `use-toast` | Notifications | Toast state management |
+
+## API Layer (lib/api.ts)
+
+Centralized API client with Clerk authentication:
+
+```typescript
+export const api = {
+  courses: {
+    listAll: (token) => ...,           // GET /api/courses
+    listUserCourses: (token) => ...,   // GET /api/user/courses
+    addToUser: (token, courseId) => ..., // POST /api/user/courses/{id}
+    removeFromUser: (token, courseId) => ..., // DELETE /api/user/courses/{id}
+  },
+  documents: {
+    listByCourse: (token, courseId) => ..., // GET /api/courses/{id}/documents
+    upload: (token, courseId, file, onProgress) => ..., // POST /api/documents/upload
+    get: (token, documentId) => ...,   // GET /api/documents/{id}
+    delete: (token, documentId) => ..., // DELETE /api/documents/{id}
+  },
+};
+```
+
+**Authentication:** All API calls require Clerk JWT in `Authorization: Bearer <token>` header.
+
 ## Backend Integration Points
 
 The frontend connects to a FastAPI backend at `NEXT_PUBLIC_API_URL`:
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
+| `/api/courses` | GET | List all available courses (official CDCS catalog) |
+| `/api/user/courses` | GET | List user's selected courses |
+| `/api/user/courses/{id}` | POST | Add course to user's list |
+| `/api/user/courses/{id}` | DELETE | Remove course from user's list |
+| `/api/courses/{id}/documents` | GET | List documents for a course |
+| `/api/documents/upload` | POST | Upload PDF document |
+| `/api/documents/{id}` | GET | Get document details |
+| `/api/documents/{id}` | DELETE | Delete document |
 | `/api/agent/chat` | POST | Streaming RAG chat (SSE) |
-| `/api/documents/upload` | POST | PDF upload |
 | `/api/lectures/download` | POST | Panopto lecture download |
-| `/api/courses` | GET | List user courses |
-
-**Authentication:** All API calls require Clerk JWT in `Authorization: Bearer <token>` header.
 
 ## Environment Variables
 
@@ -180,18 +266,16 @@ The frontend connects to a FastAPI backend at `NEXT_PUBLIC_API_URL`:
 
 ## Development Status
 
-**Completed (Phase 1 & 2):**
-- Project setup with Next.js 16, React 19, Tailwind v4
-- UI component library (Radix-based)
-- Clerk authentication with proxy.ts
-- Theme system with dark/light mode support
+**Completed:**
+- Phase 1 & 2: Project setup, UI components, Clerk auth
+- Phase 3: 3-column layout (Sidebar, MainContent, RightPanel)
+- Phase 4: Course management, document upload with backend API integration
 
-**Pending (Phase 3+):**
-- Main 3-column layout (Sidebar, Chat, Right Panel)
-- Chat interface with SSE streaming
-- Document upload with drag-and-drop
-- Course management
-- PDF viewer and video player
+**Pending:**
+- Chat interface with SSE streaming (backend integration)
+- PDF viewer integration
+- Video player for lectures
+- Lecture download from Panopto
 
 ---
 

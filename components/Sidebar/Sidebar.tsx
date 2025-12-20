@@ -80,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: colors.border }}>
             <h2 className="text-sm font-medium" style={{ color: colors.primaryText }}>
-              {currentCourse.instructor || "No instructor"}
+              Chats
             </h2>
             <Button
               variant="ghost"
@@ -95,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <div className="flex-1 p-4">
             <p className="text-xs" style={{ color: colors.secondaryText }}>
-              Upload course materials or ask questions about this course in the chat.
+              Chat history will appear here. Start a new conversation in the chat panel.
             </p>
           </div>
         </>
