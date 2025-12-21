@@ -1,9 +1,25 @@
+// RAG source from backend chat streaming
+export type RAGSource = {
+  source_id: string;
+  source_type: "slide" | "lecture";
+  content_preview: string;
+  chunk_number: number; // Citation number [1], [2], etc.
+  document_id?: string;
+  slide_number?: number;
+  lecture_id?: string;
+  start_seconds?: number;
+  end_seconds?: number;
+  course_id?: string;
+  title?: string;
+};
+
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
-  isTyping?: boolean;
+  isStreaming?: boolean;
+  sources?: RAGSource[];
 };
 
 export type MaterialType = "pdf" | "video";

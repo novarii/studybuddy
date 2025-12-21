@@ -5,8 +5,8 @@ import { SlidersHorizontalIcon, UploadIcon, PaperclipIcon, SendIcon, XIcon, Chec
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AnimatedText } from "@/components/Chat/AnimatedText";
-import type { ColorScheme, ChatMessage } from "@/types";
+import { CitationText } from "@/components/Chat/CitationText";
+import type { ColorScheme, ChatMessage, RAGSource } from "@/types";
 import type { UploadItem } from "@/hooks/useDocumentUpload";
 
 type MainContentProps = {
@@ -26,6 +26,7 @@ type MainContentProps = {
   onOpenMaterials: () => void;
   onInputChange: (value: string) => void;
   onSendMessage: () => void;
+  onCitationClick?: (source: RAGSource) => void;
 };
 
 export const MainContent: React.FC<MainContentProps> = ({
@@ -45,6 +46,7 @@ export const MainContent: React.FC<MainContentProps> = ({
   onOpenMaterials,
   onInputChange,
   onSendMessage,
+  onCitationClick,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -137,8 +139,8 @@ export const MainContent: React.FC<MainContentProps> = ({
                           color: colors.primaryText,
                         }}
                       >
-                        <p className="text-sm whitespace-pre-wrap">
-                          {message.isTyping ? (
+                        <div className="text-sm whitespace-pre-wrap">
+                          {message.isStreaming && !message.content ? (
                             <span className="flex items-center gap-2">
                               <span className="flex gap-1">
                                 <span className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: colors.accent, animationDelay: "0ms" }} />
@@ -148,9 +150,19 @@ export const MainContent: React.FC<MainContentProps> = ({
                               <span className="text-sm">Thinking...</span>
                             </span>
                           ) : (
-                            <AnimatedText text={message.content} />
+                            <>
+                              <CitationText
+                                content={message.content}
+                                sources={message.sources}
+                                onCitationClick={onCitationClick}
+                                accentColor={colors.accent}
+                              />
+                              {message.isStreaming && (
+                                <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
+                              )}
+                            </>
                           )}
-                        </p>
+                        </div>
                         <span className="text-xs opacity-70 mt-1 block">
                           {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { SunIcon, MoonIcon, LoaderIcon } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar/Sidebar";
 import { MainContent } from "@/components/MainContent/MainContent";
@@ -16,7 +16,14 @@ import { useDocuments } from "@/hooks/useDocuments";
 import { useResizePanel } from "@/hooks/useResizePanel";
 import { useChat } from "@/hooks/useChat";
 import { darkModeColors, lightModeColors } from "@/constants/colors";
-import type { Course } from "@/types";
+import type { Course, RAGSource } from "@/types";
+
+// Helper function to format time
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
 
 export const StudyBuddyClient = () => {
   const { toast } = useToast();
@@ -28,8 +35,11 @@ export const StudyBuddyClient = () => {
   const [isCourseSelectOpen, setIsCourseSelectOpen] = useState(false);
   const [isMaterialsDialogOpen, setIsMaterialsDialogOpen] = useState(false);
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
-  const [pageNumber] = useState(1);
+  const [pageNumber, setPageNumber] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
+  // TODO: Wire these to RightPanel when document/lecture viewer integration is complete
+  const [, setSelectedDocumentId] = useState<string | null>(null);
+  const [, setLectureTimestamp] = useState<number>(0);
 
   const colors = isDarkMode ? darkModeColors : lightModeColors;
 
@@ -44,7 +54,7 @@ export const StudyBuddyClient = () => {
 
   const currentCourse = userCourses.find((c) => c.id === currentCourseId) ?? userCourses[0] ?? null;
 
-  const { messages, isLoading: isChatLoading, inputValue, setInputValue, sendMessage, deleteCourseHistory } = useChat(currentCourseId);
+  const { messages, isLoading: isChatLoading, inputValue, setInputValue, sendMessage, deleteCourseHistory, error: chatError } = useChat(currentCourseId);
 
   const {
     uploads,
@@ -69,6 +79,17 @@ export const StudyBuddyClient = () => {
       refetchDocuments();
     }
   }, [uploads, refetchDocuments]);
+
+  // Show toast on chat error
+  useEffect(() => {
+    if (chatError) {
+      toast({
+        title: "Chat error",
+        description: chatError.message || "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [chatError, toast]);
 
   // Set current course when userCourses loads and no course is selected
   if (!currentCourseId && userCourses.length > 0) {
@@ -119,6 +140,27 @@ export const StudyBuddyClient = () => {
   const handleUploadClick = () => {
     document.getElementById("file-upload-input")?.click();
   };
+
+  const handleCitationClick = useCallback((source: RAGSource) => {
+    if (source.source_type === "slide" && source.document_id && source.slide_number) {
+      // Navigate to the specific slide
+      setSelectedDocumentId(source.document_id);
+      setPageNumber(source.slide_number);
+      setIsSlidesCollapsed(false); // Expand slides panel
+      toast({
+        title: "Navigating to source",
+        description: `${source.title || "Document"} - Slide ${source.slide_number}`,
+      });
+    } else if (source.source_type === "lecture" && source.lecture_id && source.start_seconds !== undefined) {
+      // Navigate to the specific timestamp in the lecture
+      setLectureTimestamp(source.start_seconds);
+      setIsVideoCollapsed(false); // Expand video panel
+      toast({
+        title: "Navigating to source",
+        description: `${source.title || "Lecture"} @ ${formatTime(source.start_seconds)}`,
+      });
+    }
+  }, [toast]);
 
   const handleDeleteDocument = async (documentId: string) => {
     if (!currentCourse) return;
@@ -180,6 +222,7 @@ export const StudyBuddyClient = () => {
             onOpenMaterials={() => setIsMaterialsDialogOpen(true)}
             onInputChange={setInputValue}
             onSendMessage={sendMessage}
+            onCitationClick={handleCitationClick}
           />
 
           <RightPanel
