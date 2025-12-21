@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useChat as useAIChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useAuth } from "@clerk/nextjs";
@@ -12,22 +12,10 @@ export const useChat = (courseId: string | undefined) => {
   const { getToken } = useAuth();
   const [inputValue, setInputValue] = useState("");
   const [sources, setSources] = useState<RAGSource[]>([]);
-  const tokenRef = useRef<string | null>(null);
 
-  // Keep token fresh
-  useEffect(() => {
-    getToken().then((token) => {
-      tokenRef.current = token;
-    });
-  }, [getToken]);
-
-  // Memoize transport to avoid recreating on every render
-  // eslint-disable-next-line react-hooks/refs
+  // Memoize transport - headers will be passed at request level for fresh tokens
   const transport = useMemo(() => new DefaultChatTransport({
     api: `${API_BASE}/agent/chat`,
-    headers: () => ({
-      Authorization: `Bearer ${tokenRef.current}`,
-    }),
     // Transform the request to match backend's expected format
     prepareSendMessagesRequest: ({ messages }) => {
       // Get the last user message text
@@ -91,11 +79,21 @@ export const useChat = (courseId: string | undefined) => {
     const message = inputValue.trim();
     if (!message || !courseId || isLoading) return;
 
+    // Get fresh token for each request (best practice per AI SDK docs)
+    const token = await getToken();
+
     setInputValue("");
     setSources([]);
 
-    await aiSendMessage({ text: message });
-  }, [inputValue, courseId, isLoading, aiSendMessage]);
+    await aiSendMessage(
+      { text: message },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+  }, [inputValue, courseId, isLoading, aiSendMessage, getToken]);
 
   const clearMessages = useCallback(() => {
     // Note: AI SDK v5 doesn't have a built-in clear method
