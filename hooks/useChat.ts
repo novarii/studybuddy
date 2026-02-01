@@ -122,6 +122,12 @@ export const useChat = (
     },
   });
 
+  // Sync loaded messages to AI SDK state when initialMessages changes
+  // This handles both loading history and clearing when switching sessions
+  useEffect(() => {
+    setMessages(initialMessages);
+  }, [initialMessages, setMessages]);
+
   // Convert AI SDK messages to our format
   const messages: ChatMessage[] = aiMessages.map((msg) => {
     // Extract text content from parts
