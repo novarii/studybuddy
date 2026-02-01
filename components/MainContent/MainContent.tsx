@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
-import { SlidersHorizontalIcon, UploadIcon, PaperclipIcon, SendIcon, XIcon, CheckIcon, AlertCircleIcon } from "lucide-react";
+import { SlidersHorizontalIcon, UploadIcon, PaperclipIcon, SendIcon, XIcon, CheckIcon, AlertCircleIcon, LoaderIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -16,6 +16,7 @@ type MainContentProps = {
   messages: ChatMessage[];
   inputValue: string;
   isLoading: boolean;
+  isLoadingHistory?: boolean;
   onDragEnter: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: (e: React.DragEvent) => void;
@@ -36,6 +37,7 @@ export const MainContent: React.FC<MainContentProps> = ({
   messages,
   inputValue,
   isLoading,
+  isLoadingHistory,
   onDragEnter,
   onDragOver,
   onDragLeave,
@@ -108,7 +110,12 @@ export const MainContent: React.FC<MainContentProps> = ({
 
         <ScrollArea className="flex-1">
           <div className="space-y-4 p-4">
-            {messages.length === 0 ? (
+            {isLoadingHistory ? (
+              <div className="flex items-center justify-center py-12" style={{ color: colors.secondaryText }}>
+                <LoaderIcon className="w-5 h-5 animate-spin mr-2" />
+                <p className="text-sm">Loading conversation...</p>
+              </div>
+            ) : messages.length === 0 ? (
               <div className="text-center py-12" style={{ color: colors.secondaryText }}>
                 <p className="text-sm">Start a conversation by asking a question about your course materials</p>
               </div>

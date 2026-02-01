@@ -15,6 +15,7 @@ import { useDocumentUpload } from "@/hooks/useDocumentUpload";
 import { useDocuments } from "@/hooks/useDocuments";
 import { useResizePanel } from "@/hooks/useResizePanel";
 import { useChat } from "@/hooks/useChat";
+import { useChatSessions } from "@/hooks/useChatSessions";
 import { darkModeColors, lightModeColors } from "@/constants/colors";
 import type { Course, RAGSource } from "@/types";
 
@@ -32,6 +33,7 @@ export const StudyBuddyClient = () => {
   const [isSlidesCollapsed, setIsSlidesCollapsed] = useState(false);
   const [isVideoCollapsed, setIsVideoCollapsed] = useState(false);
   const [currentCourseId, setCurrentCourseId] = useState<string>("");
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isCourseSelectOpen, setIsCourseSelectOpen] = useState(false);
   const [isMaterialsDialogOpen, setIsMaterialsDialogOpen] = useState(false);
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
@@ -54,7 +56,30 @@ export const StudyBuddyClient = () => {
 
   const currentCourse = userCourses.find((c) => c.id === currentCourseId) ?? userCourses[0] ?? null;
 
-  const { messages, isLoading: isChatLoading, inputValue, setInputValue, sendMessage, deleteCourseHistory, error: chatError } = useChat(currentCourseId);
+  // Session management
+  const {
+    sessions,
+    isLoading: isSessionsLoading,
+    createSession,
+    deleteSession,
+    generateTitle,
+    isNewSession,
+    markSessionCreated,
+  } = useChatSessions(currentCourseId);
+
+  const {
+    messages,
+    isLoading: isChatLoading,
+    isLoadingHistory,
+    inputValue,
+    setInputValue,
+    sendMessage,
+    deleteCourseHistory,
+    error: chatError,
+  } = useChat(currentCourseId, currentSessionId ?? undefined, {
+    isNewSession,
+    onSessionCreated: markSessionCreated,
+  });
 
   const {
     uploads,
@@ -90,6 +115,29 @@ export const StudyBuddyClient = () => {
       });
     }
   }, [chatError, toast]);
+
+  // Reset session when course changes
+  useEffect(() => {
+    setCurrentSessionId(null);
+  }, [currentCourseId]);
+
+  // Auto-select first session when sessions load
+  useEffect(() => {
+    if (!currentSessionId && sessions.length > 0) {
+      setCurrentSessionId(sessions[0].session_id);
+    }
+  }, [sessions, currentSessionId]);
+
+  // Auto-generate title after first assistant response
+  useEffect(() => {
+    if (currentSessionId && messages.length === 2) {
+      // 2 messages = 1 user + 1 assistant (first exchange complete)
+      const session = sessions.find((s) => s.session_id === currentSessionId);
+      if (session && !session.session_name) {
+        generateTitle(currentSessionId);
+      }
+    }
+  }, [currentSessionId, messages.length, sessions, generateTitle]);
 
   // Set current course when userCourses loads and no course is selected
   if (!currentCourseId && userCourses.length > 0) {
@@ -139,6 +187,42 @@ export const StudyBuddyClient = () => {
 
   const handleUploadClick = () => {
     document.getElementById("file-upload-input")?.click();
+  };
+
+  // Session handlers
+  const handleNewChat = async () => {
+    const sessionId = await createSession();
+    if (sessionId) {
+      setCurrentSessionId(sessionId);
+    }
+  };
+
+  const handleSelectSession = (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    const success = await deleteSession(sessionId);
+    if (success && currentSessionId === sessionId) {
+      // Switch to another session or null
+      const remaining = sessions.filter((s) => s.session_id !== sessionId);
+      setCurrentSessionId(remaining.length > 0 ? remaining[0].session_id : null);
+    }
+  };
+
+  // Modified sendMessage to create session if none exists
+  const handleSendMessage = async () => {
+    let sessionId = currentSessionId;
+
+    // If no session, create one first
+    if (!sessionId) {
+      sessionId = await createSession();
+      if (!sessionId) return; // Failed to create
+      setCurrentSessionId(sessionId);
+    }
+
+    // Pass sessionId directly to sendMessage (handles race condition)
+    sendMessage(sessionId);
   };
 
   const handleCitationClick = useCallback((source: RAGSource) => {
@@ -203,6 +287,12 @@ export const StudyBuddyClient = () => {
             onAddCourse={() => setIsCourseSelectOpen(true)}
             hoveredCourseId={hoveredCourseId}
             setHoveredCourseId={setHoveredCourseId}
+            sessions={sessions}
+            currentSessionId={currentSessionId}
+            isSessionsLoading={isSessionsLoading}
+            onSelectSession={handleSelectSession}
+            onNewChat={handleNewChat}
+            onDeleteSession={handleDeleteSession}
           />
 
           <MainContent
@@ -212,6 +302,7 @@ export const StudyBuddyClient = () => {
             messages={messages}
             inputValue={inputValue}
             isLoading={isChatLoading}
+            isLoadingHistory={isLoadingHistory}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -221,7 +312,7 @@ export const StudyBuddyClient = () => {
             onClearCompleted={clearCompleted}
             onOpenMaterials={() => setIsMaterialsDialogOpen(true)}
             onInputChange={setInputValue}
-            onSendMessage={sendMessage}
+            onSendMessage={handleSendMessage}
             onCitationClick={handleCitationClick}
           />
 

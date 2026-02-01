@@ -1,4 +1,4 @@
-import type { Course, Document } from "@/types";
+import type { Course, Document, ChatSession, StoredMessage } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -159,5 +159,52 @@ export const api = {
      */
     delete: (token: string, documentId: string) =>
       fetchWithAuth<void>(`/documents/${documentId}`, { token, method: "DELETE" }),
+  },
+
+  sessions: {
+    /**
+     * List chat sessions for a course
+     */
+    list: (token: string, courseId?: string) =>
+      fetchWithAuth<{ sessions: ChatSession[]; total: number }>(
+        `/sessions${courseId ? `?course_id=${courseId}` : ""}`,
+        { token }
+      ),
+
+    /**
+     * Create a new chat session
+     */
+    create: (token: string, courseId: string) =>
+      fetchWithAuth<{ session_id: string }>("/sessions", {
+        token,
+        method: "POST",
+        body: JSON.stringify({ course_id: courseId }),
+      }),
+
+    /**
+     * Get messages for a session
+     */
+    getMessages: (token: string, sessionId: string) =>
+      fetchWithAuth<StoredMessage[]>(`/sessions/${sessionId}/messages`, {
+        token,
+      }),
+
+    /**
+     * Delete a session
+     */
+    delete: (token: string, sessionId: string) =>
+      fetchWithAuth<void>(`/sessions/${sessionId}`, {
+        token,
+        method: "DELETE",
+      }),
+
+    /**
+     * Generate title for a session
+     */
+    generateTitle: (token: string, sessionId: string) =>
+      fetchWithAuth<{ session_name: string }>(
+        `/sessions/${sessionId}/generate-title`,
+        { token, method: "POST" }
+      ),
   },
 };

@@ -66,3 +66,20 @@ export type ColorScheme = {
   selected: string;
   buttonIcon: string;
 };
+
+// Chat session from backend
+export type ChatSession = {
+  session_id: string;
+  session_name: string | null;
+  course_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// Message from backend (for loading history)
+export type StoredMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string | null;
+};
