@@ -32,6 +32,7 @@ A **spec** is an atomic source of truth document. It can contain:
 | [session-management.md](./session-management.md) | Chat session UI | Session list, CRUD, auto-titling |
 | [backend-integration.md](./backend-integration.md) | API client | FastAPI integration, error handling, types |
 | [layout-system.md](./layout-system.md) | 3-column layout | Sidebar, MainContent, RightPanel, resizing |
+| [markdown-rendering.md](./markdown-rendering.md) | AI markdown rendering | Streamdown, citations, code highlighting, streaming |
 
 ---
 

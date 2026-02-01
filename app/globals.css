@@ -1,7 +1,10 @@
 @import "tailwindcss";
 
+@source "../node_modules/streamdown/dist/*.js";
+
 @custom-variant dark (&:is(.dark *));
 @plugin "tailwindcss-animate";
+@plugin "@tailwindcss/typography";
 
 /* Theme configuration for Tailwind v4 */
 @theme inline {

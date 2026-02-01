@@ -5,7 +5,7 @@ import { SlidersHorizontalIcon, UploadIcon, PaperclipIcon, SendIcon, XIcon, Chec
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CitationText } from "@/components/Chat/CitationText";
+import { MarkdownMessage } from "@/components/Chat/MarkdownMessage";
 import type { ColorScheme, ChatMessage, RAGSource } from "@/types";
 import type { UploadItem } from "@/hooks/useDocumentUpload";
 
@@ -146,7 +146,7 @@ export const MainContent: React.FC<MainContentProps> = ({
                           color: colors.primaryText,
                         }}
                       >
-                        <div className="text-sm whitespace-pre-wrap">
+                        <div className="text-sm">
                           {message.isStreaming && !message.content ? (
                             <span className="flex items-center gap-2">
                               <span className="flex gap-1">
@@ -158,8 +158,9 @@ export const MainContent: React.FC<MainContentProps> = ({
                             </span>
                           ) : (
                             <>
-                              <CitationText
+                              <MarkdownMessage
                                 content={message.content}
+                                isStreaming={message.isStreaming ?? false}
                                 sources={message.sources}
                                 onCitationClick={onCitationClick}
                                 accentColor={colors.accent}
