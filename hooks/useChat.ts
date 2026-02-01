@@ -110,10 +110,18 @@ export const useChat = (
     id: sessionId || courseId, // Use sessionId as conversation ID
     messages: initialMessages,
     transport,
+    onData: (dataPart) => {
+      // Capture RAG sources from data-rag-source stream events
+      // Backend sends: { type: "data-rag-source", data: { source_id, source_type, ... } }
+      if (dataPart.type === "data-rag-source") {
+        const sourceData = (dataPart as { type: string; data: RAGSource }).data;
+        setSources((prev) => [...prev, sourceData]);
+      }
+    },
     onFinish: ({ message }) => {
-      // Extract RAG sources from message metadata if available
+      // Fallback: Extract RAG sources from message metadata if available
       const metadata = message.metadata as { sources?: RAGSource[] } | undefined;
-      if (metadata?.sources) {
+      if (metadata?.sources && metadata.sources.length > 0) {
         setSources(metadata.sources);
       }
     },
@@ -129,20 +137,23 @@ export const useChat = (
   }, [initialMessages, setMessages]);
 
   // Convert AI SDK messages to our format
-  const messages: ChatMessage[] = aiMessages.map((msg) => {
+  const messages: ChatMessage[] = aiMessages.map((msg, index) => {
     // Extract text content from parts
     const textContent = msg.parts
       .filter((part): part is { type: "text"; text: string } => part.type === "text")
       .map((part) => part.text)
       .join("");
 
+    const isLastAssistantMessage = msg.role === "assistant" && index === aiMessages.length - 1;
+
     return {
       id: msg.id,
       role: msg.role as "user" | "assistant",
       content: textContent,
       timestamp: new Date(), // UIMessage doesn't have createdAt in v5
-      isStreaming: status === "streaming" && msg.role === "assistant" && msg === aiMessages[aiMessages.length - 1],
-      sources: (msg.metadata as { sources?: RAGSource[] } | undefined)?.sources,
+      isStreaming: status === "streaming" && isLastAssistantMessage,
+      // Attach collected sources to the last assistant message
+      sources: isLastAssistantMessage ? sources : undefined,
     };
   });
 

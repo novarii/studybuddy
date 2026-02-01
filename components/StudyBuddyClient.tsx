@@ -39,9 +39,9 @@ export const StudyBuddyClient = () => {
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
-  // TODO: Wire these to RightPanel when document/lecture viewer integration is complete
-  const [, setSelectedDocumentId] = useState<string | null>(null);
-  const [, setLectureTimestamp] = useState<number>(0);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [selectedLectureId, setSelectedLectureId] = useState<string | null>(null);
+  const [lectureTimestamp, setLectureTimestamp] = useState<number>(0);
 
   const colors = isDarkMode ? darkModeColors : lightModeColors;
 
@@ -237,6 +237,7 @@ export const StudyBuddyClient = () => {
       });
     } else if (source.source_type === "lecture" && source.lecture_id && source.start_seconds !== undefined) {
       // Navigate to the specific timestamp in the lecture
+      setSelectedLectureId(source.lecture_id);
       setLectureTimestamp(source.start_seconds);
       setIsVideoCollapsed(false); // Expand video panel
       toast({
@@ -326,6 +327,7 @@ export const StudyBuddyClient = () => {
             isPlaying={isPlaying}
             hasPdfMaterials={documents.length > 0}
             hasVideoMaterials={false}
+            selectedDocumentId={selectedDocumentId}
             onMouseDown={handleMouseDown}
             onToggleSlides={() => setIsSlidesCollapsed(!isSlidesCollapsed)}
             onToggleVideo={() => setIsVideoCollapsed(!isVideoCollapsed)}

@@ -18,6 +18,7 @@ type RightPanelProps = {
   isPlaying: boolean;
   hasPdfMaterials: boolean;
   hasVideoMaterials: boolean;
+  selectedDocumentId: string | null;
   onMouseDown: (e: React.MouseEvent) => void;
   onToggleSlides: () => void;
   onToggleVideo: () => void;
@@ -35,6 +36,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   isPlaying,
   hasPdfMaterials,
   hasVideoMaterials,
+  selectedDocumentId,
   onMouseDown,
   onToggleSlides,
   onToggleVideo,
@@ -73,6 +75,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               colors={colors}
               pageNumber={pageNumber}
               hasMaterials={hasPdfMaterials}
+              documentId={selectedDocumentId}
               onToggle={onToggleSlides}
               onUploadClick={onUploadClick}
             />
