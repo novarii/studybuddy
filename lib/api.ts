@@ -1,4 +1,4 @@
-import type { Course, Document, ChatSession, StoredMessage } from "@/types";
+import type { Course, Document, Lecture, ChatSession, StoredMessage } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -159,6 +159,20 @@ export const api = {
      */
     delete: (token: string, documentId: string) =>
       fetchWithAuth<void>(`/documents/${documentId}`, { token, method: "DELETE" }),
+  },
+
+  lectures: {
+    /**
+     * List all lectures for a course
+     */
+    listByCourse: (token: string, courseId: string) =>
+      fetchWithAuth<Lecture[]>(`/courses/${courseId}/lectures`, { token }),
+
+    /**
+     * Get lecture details
+     */
+    get: (token: string, lectureId: string) =>
+      fetchWithAuth<Lecture>(`/lectures/${lectureId}`, { token }),
   },
 
   sessions: {

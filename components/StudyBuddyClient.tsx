@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCourses } from "@/hooks/useCourses";
 import { useDocumentUpload } from "@/hooks/useDocumentUpload";
 import { useDocuments } from "@/hooks/useDocuments";
+import { useLectures } from "@/hooks/useLectures";
 import { useResizePanel } from "@/hooks/useResizePanel";
 import { useChat } from "@/hooks/useChat";
 import { useChatSessions } from "@/hooks/useChatSessions";
@@ -38,7 +39,6 @@ export const StudyBuddyClient = () => {
   const [isMaterialsDialogOpen, setIsMaterialsDialogOpen] = useState(false);
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [selectedLectureId, setSelectedLectureId] = useState<string | null>(null);
   const [lectureTimestamp, setLectureTimestamp] = useState<number>(0);
@@ -94,6 +94,8 @@ export const StudyBuddyClient = () => {
   } = useDocumentUpload(currentCourseId);
 
   const { documents, refetch: refetchDocuments, deleteDocument } = useDocuments(currentCourseId);
+
+  const { lectures } = useLectures(currentCourseId);
 
   const { panelWidth, isResizing, handleMouseDown } = useResizePanel(400, 800, 400);
 
@@ -324,14 +326,14 @@ export const StudyBuddyClient = () => {
             isVideoCollapsed={isVideoCollapsed}
             colors={colors}
             pageNumber={pageNumber}
-            isPlaying={isPlaying}
             hasPdfMaterials={documents.length > 0}
-            hasVideoMaterials={false}
+            hasVideoMaterials={lectures.length > 0}
             selectedDocumentId={selectedDocumentId}
+            selectedLecture={lectures.find((l) => l.id === selectedLectureId) ?? null}
+            lectureTimestamp={lectureTimestamp}
             onMouseDown={handleMouseDown}
             onToggleSlides={() => setIsSlidesCollapsed(!isSlidesCollapsed)}
             onToggleVideo={() => setIsVideoCollapsed(!isVideoCollapsed)}
-            onSetPlaying={setIsPlaying}
             onUploadClick={handleUploadClick}
           />
         </>

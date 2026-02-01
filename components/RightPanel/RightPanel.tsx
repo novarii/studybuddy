@@ -5,7 +5,7 @@ import { PresentationIcon, PlayCircleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SlidesSection } from "./SlidesSection";
 import { VideoSection } from "./VideoSection";
-import type { ColorScheme } from "@/types";
+import type { ColorScheme, Lecture } from "@/types";
 import { cn } from "@/lib/utils";
 
 type RightPanelProps = {
@@ -15,14 +15,14 @@ type RightPanelProps = {
   isVideoCollapsed: boolean;
   colors: ColorScheme;
   pageNumber: number;
-  isPlaying: boolean;
   hasPdfMaterials: boolean;
   hasVideoMaterials: boolean;
   selectedDocumentId: string | null;
+  selectedLecture: Lecture | null;
+  lectureTimestamp: number;
   onMouseDown: (e: React.MouseEvent) => void;
   onToggleSlides: () => void;
   onToggleVideo: () => void;
-  onSetPlaying: (playing: boolean) => void;
   onUploadClick: () => void;
 };
 
@@ -33,14 +33,14 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   isVideoCollapsed,
   colors,
   pageNumber,
-  isPlaying,
   hasPdfMaterials,
   hasVideoMaterials,
   selectedDocumentId,
+  selectedLecture,
+  lectureTimestamp,
   onMouseDown,
   onToggleSlides,
   onToggleVideo,
-  onSetPlaying,
   onUploadClick,
 }) => {
   const bothCollapsed = isSlidesCollapsed && isVideoCollapsed;
@@ -82,10 +82,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             <VideoSection
               isCollapsed={isVideoCollapsed}
               colors={colors}
-              isPlaying={isPlaying}
               hasVideos={hasVideoMaterials}
+              panoptoSessionId={selectedLecture?.panopto_session_id ?? null}
+              startSeconds={lectureTimestamp}
               onToggle={onToggleVideo}
-              onSetPlaying={onSetPlaying}
             />
           </>
         )}

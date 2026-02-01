@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronUpIcon, ChevronDownIcon, SkipBackIcon, PlayIcon, PauseIcon, SkipForwardIcon, VideoIcon } from "lucide-react";
+import { ChevronUpIcon, ChevronDownIcon, VideoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ColorScheme } from "@/types";
@@ -10,34 +10,43 @@ import { cn } from "@/lib/utils";
 type VideoSectionProps = {
   isCollapsed: boolean;
   colors: ColorScheme;
-  isPlaying: boolean;
   hasVideos: boolean;
+  panoptoSessionId: string | null;
+  startSeconds: number;
   onToggle: () => void;
-  onSetPlaying: (playing: boolean) => void;
 };
 
-export const VideoSection: React.FC<VideoSectionProps> = ({ isCollapsed, colors, isPlaying, hasVideos, onToggle, onSetPlaying }) => {
-  const handleSkipBack = () => {
-    const video = document.querySelector("video");
-    if (video) video.currentTime -= 10;
-  };
+/**
+ * Build Panopto embed URL with optional start time.
+ */
+function buildPanoptoEmbedUrl(sessionId: string, startSeconds: number): string {
+  const params = new URLSearchParams({
+    id: sessionId,
+    autoplay: startSeconds > 0 ? "true" : "false",
+    offerviewer: "true",
+    showtitle: "true",
+    showbrand: "true",
+    captions: "false",
+    interactivity: "all",
+  });
 
-  const handleSkipForward = () => {
-    const video = document.querySelector("video");
-    if (video) video.currentTime += 10;
-  };
+  if (startSeconds > 0) {
+    params.set("start", String(Math.floor(startSeconds)));
+  }
 
-  const handlePlayPause = () => {
-    const video = document.querySelector("video");
-    if (video) {
-      if (isPlaying) {
-        video.pause();
-      } else {
-        video.play();
-      }
-      onSetPlaying(!isPlaying);
-    }
-  };
+  return `https://rochester.hosted.panopto.com/Panopto/Pages/Embed.aspx?${params.toString()}`;
+}
+
+export const VideoSection: React.FC<VideoSectionProps> = ({
+  isCollapsed,
+  colors,
+  hasVideos,
+  panoptoSessionId,
+  startSeconds,
+  onToggle,
+}) => {
+  // Generate a unique key to force iframe reload when session or timestamp changes
+  const iframeKey = panoptoSessionId ? `${panoptoSessionId}-${startSeconds}` : null;
 
   return (
     <section
@@ -59,23 +68,36 @@ export const VideoSection: React.FC<VideoSectionProps> = ({ isCollapsed, colors,
       {!isCollapsed && (
         <div className="flex-1 p-4 flex flex-col overflow-hidden">
           <Card className="overflow-hidden flex-1 flex flex-col items-center justify-center" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-            {hasVideos ? (
+            {panoptoSessionId ? (
               <CardContent className="p-0 flex-1 flex flex-col overflow-hidden w-full">
-                <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
-                  <video className="w-full h-full object-contain" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">
-                    Your browser does not support the video tag.
-                  </video>
+                <div className="relative flex-1 bg-black overflow-hidden">
+                  <iframe
+                    key={iframeKey}
+                    src={buildPanoptoEmbedUrl(panoptoSessionId, startSeconds)}
+                    className="absolute inset-0 w-full h-full border-0"
+                    allow="autoplay; fullscreen"
+                    allowFullScreen
+                    title="Panopto Lecture"
+                  />
                 </div>
-                <div className="p-4 border-t flex items-center justify-center gap-4" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-                  <Button variant="ghost" size="icon" className="h-10 w-10" style={{ color: colors.primaryText }} onClick={handleSkipBack}>
-                    <SkipBackIcon className="w-5 h-5" />
-                  </Button>
-                  <Button size="icon" className="h-12 w-12 rounded-full" style={{ backgroundColor: colors.accent, color: colors.buttonIcon }} onClick={handlePlayPause}>
-                    {isPlaying ? <PauseIcon className="w-6 h-6" /> : <PlayIcon className="w-6 h-6" />}
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10" style={{ color: colors.primaryText }} onClick={handleSkipForward}>
-                    <SkipForwardIcon className="w-5 h-5" />
-                  </Button>
+              </CardContent>
+            ) : hasVideos ? (
+              <CardContent className="p-8 text-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: colors.panel }}
+                  >
+                    <VideoIcon className="w-8 h-8" style={{ color: colors.accent }} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2" style={{ color: colors.primaryText }}>
+                      Select a Lecture Reference
+                    </h3>
+                    <p className="text-sm" style={{ color: colors.secondaryText }}>
+                      Click on a lecture citation in the chat to view the video
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             ) : (
