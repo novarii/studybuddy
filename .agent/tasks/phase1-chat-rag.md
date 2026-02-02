@@ -20,22 +20,22 @@
 **Goal:** Set up Drizzle ORM, Vitest, and create new chat tables.
 
 ### Subtasks - Drizzle
-- [ ] 1.1 Install dependencies via pnpm: `drizzle-orm`, `drizzle-kit`, `postgres`, `dotenv`
-- [ ] 1.2 Create `drizzle.config.ts` - Drizzle Kit configuration
-- [ ] 1.3 Create `lib/db/client.ts` with connection pool
-- [ ] 1.4 Create `lib/db/schema.ts` with `chatSessions`, `chatMessages` tables
-- [ ] 1.5 Add existing `messageSources` table to schema (for type safety)
-- [ ] 1.6 Generate migration with `drizzle-kit generate`
+- [x] 1.1 Install dependencies via pnpm: `drizzle-orm`, `drizzle-kit`, `postgres`, `dotenv`
+- [x] 1.2 Create `drizzle.config.ts` - Drizzle Kit configuration
+- [x] 1.3 Create `lib/db/client.ts` with connection pool
+- [x] 1.4 Create `lib/db/schema.ts` with `chatSessions`, `chatMessages` tables
+- [x] 1.5 Add existing `messageSources` table to schema (for type safety)
+- [x] 1.6 Generate migration with `drizzle-kit generate`
 - [ ] 1.7 Run migration against dev database
 - [ ] 1.8 Verify tables created in `ai` schema
 
 ### Subtasks - Vitest
-- [ ] 1.9 Install test dependencies: `vitest`, `@vitejs/plugin-react`, `@testing-library/react`, `@testing-library/dom`, `jsdom`
-- [ ] 1.10 Create `vitest.config.ts`
-- [ ] 1.11 Create `vitest.setup.ts`
-- [ ] 1.12 Add test scripts to `package.json`
-- [ ] 1.13 Create `__tests__/` directory structure
-- [ ] 1.14 Verify setup with a trivial test
+- [x] 1.9 Install test dependencies: `vitest`, `@vitejs/plugin-react`, `@testing-library/react`, `@testing-library/dom`, `jsdom`
+- [x] 1.10 Create `vitest.config.ts`
+- [x] 1.11 Create `vitest.setup.ts`
+- [x] 1.12 Add test scripts to `package.json`
+- [x] 1.13 Create `__tests__/` directory structure
+- [x] 1.14 Verify setup with a trivial test
 
 ### Deliverables
 - `lib/db/client.ts` - Database connection
