@@ -19,7 +19,8 @@ export const useChat = (
 ) => {
   const { getToken } = useAuth();
   const [inputValue, setInputValue] = useState("");
-  const [sources, setSources] = useState<RAGSource[]>([]);
+  const [streamingSources, setStreamingSources] = useState<RAGSource[]>([]);
+  const [sourcesMap, setSourcesMap] = useState<Record<string, RAGSource[]>>({});
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
@@ -65,10 +66,20 @@ export const useChat = (
           parts: [{ type: "text" as const, text: msg.content }],
         }));
 
+        // Build sources map from loaded messages
+        const loadedSourcesMap: Record<string, RAGSource[]> = {};
+        for (const msg of messages) {
+          if (msg.sources && msg.sources.length > 0) {
+            loadedSourcesMap[msg.id] = msg.sources;
+          }
+        }
+        setSourcesMap(loadedSourcesMap);
+
         setInitialMessages(uiMessages);
       } catch (err) {
         console.error("Failed to load chat history:", err);
         setInitialMessages([]);
+        setSourcesMap({});
       } finally {
         setIsLoadingHistory(false);
       }
@@ -115,14 +126,28 @@ export const useChat = (
       // Backend sends: { type: "data-rag-source", data: { source_id, source_type, ... } }
       if (dataPart.type === "data-rag-source") {
         const sourceData = (dataPart as { type: string; data: RAGSource }).data;
-        setSources((prev) => [...prev, sourceData]);
+        setStreamingSources((prev) => [...prev, sourceData]);
       }
     },
     onFinish: ({ message }) => {
+      // Persist streaming sources to sourcesMap for this message
+      setStreamingSources((currentSources) => {
+        if (currentSources.length > 0) {
+          setSourcesMap((prev) => ({
+            ...prev,
+            [message.id]: currentSources,
+          }));
+        }
+        return []; // Clear streaming sources
+      });
+
       // Fallback: Extract RAG sources from message metadata if available
       const metadata = message.metadata as { sources?: RAGSource[] } | undefined;
       if (metadata?.sources && metadata.sources.length > 0) {
-        setSources(metadata.sources);
+        setSourcesMap((prev) => ({
+          ...prev,
+          [message.id]: metadata.sources!,
+        }));
       }
     },
     onError: (err) => {
@@ -145,15 +170,25 @@ export const useChat = (
       .join("");
 
     const isLastAssistantMessage = msg.role === "assistant" && index === aiMessages.length - 1;
+    const isCurrentlyStreaming = status === "streaming" && isLastAssistantMessage;
+
+    // Get sources: use streaming sources for active stream, otherwise use sourcesMap
+    let messageSources: RAGSource[] | undefined;
+    if (msg.role === "assistant") {
+      if (isCurrentlyStreaming) {
+        messageSources = streamingSources.length > 0 ? streamingSources : undefined;
+      } else {
+        messageSources = sourcesMap[msg.id];
+      }
+    }
 
     return {
       id: msg.id,
       role: msg.role as "user" | "assistant",
       content: textContent,
       timestamp: new Date(), // UIMessage doesn't have createdAt in v5
-      isStreaming: status === "streaming" && isLastAssistantMessage,
-      // Attach collected sources to the last assistant message
-      sources: isLastAssistantMessage ? sources : undefined,
+      isStreaming: isCurrentlyStreaming,
+      sources: messageSources,
     };
   });
 
@@ -174,7 +209,7 @@ export const useChat = (
     const token = await getToken();
 
     setInputValue("");
-    setSources([]);
+    setStreamingSources([]);
 
     await aiSendMessage(
       { text: message },
@@ -194,6 +229,8 @@ export const useChat = (
   const clearMessages = useCallback(() => {
     setMessages([]);
     setInitialMessages([]);
+    setSourcesMap({});
+    setStreamingSources([]);
   }, [setMessages]);
 
   const deleteCourseHistory = useCallback((_deletedCourseId: string) => {
@@ -211,7 +248,7 @@ export const useChat = (
     clearMessages,
     deleteCourseHistory,
     stop,
-    sources,
+    sources: streamingSources,
     error,
   };
 };

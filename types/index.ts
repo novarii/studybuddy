@@ -97,4 +97,5 @@ export type StoredMessage = {
   role: "user" | "assistant";
   content: string;
   created_at: string | null;
+  sources?: RAGSource[] | null;
 };

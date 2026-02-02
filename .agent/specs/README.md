@@ -33,6 +33,7 @@ A **spec** is an atomic source of truth document. It can contain:
 | [backend-integration.md](./backend-integration.md) | API client | FastAPI integration, error handling, types |
 | [layout-system.md](./layout-system.md) | 3-column layout | Sidebar, MainContent, RightPanel, resizing |
 | [markdown-rendering.md](./markdown-rendering.md) | AI markdown rendering | Streamdown, citations, code highlighting, streaming |
+| [message-sources-persistence.md](./message-sources-persistence.md) | RAG sources persistence | Load sources with messages, historical citations |
 
 ---
 
