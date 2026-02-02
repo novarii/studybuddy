@@ -97,7 +97,8 @@ export const StudyBuddyClient = () => {
 
   const { lectures } = useLectures(currentCourseId);
 
-  const { panelWidth, isResizing, handleMouseDown } = useResizePanel(400, 800, 400);
+  const { panelWidth: rightPanelWidth, isResizing: isRightPanelResizing, handleMouseDown: handleRightPanelMouseDown } = useResizePanel(400, 800, 400, "right");
+  const { panelWidth: sidebarWidth, isResizing: isSidebarResizing, handleMouseDown: handleSidebarMouseDown } = useResizePanel(200, 400, 280, "left");
 
   // Refetch documents when uploads complete
   useEffect(() => {
@@ -296,6 +297,9 @@ export const StudyBuddyClient = () => {
             onSelectSession={handleSelectSession}
             onNewChat={handleNewChat}
             onDeleteSession={handleDeleteSession}
+            sidebarWidth={sidebarWidth}
+            isResizing={isSidebarResizing}
+            onResizeMouseDown={handleSidebarMouseDown}
           />
 
           <MainContent
@@ -320,8 +324,8 @@ export const StudyBuddyClient = () => {
           />
 
           <RightPanel
-            panelWidth={panelWidth}
-            isResizing={isResizing}
+            panelWidth={rightPanelWidth}
+            isResizing={isRightPanelResizing}
             isSlidesCollapsed={isSlidesCollapsed}
             isVideoCollapsed={isVideoCollapsed}
             colors={colors}
@@ -331,7 +335,7 @@ export const StudyBuddyClient = () => {
             selectedDocumentId={selectedDocumentId}
             selectedLecture={lectures.find((l) => l.id === selectedLectureId) ?? null}
             lectureTimestamp={lectureTimestamp}
-            onMouseDown={handleMouseDown}
+            onMouseDown={handleRightPanelMouseDown}
             onToggleSlides={() => setIsSlidesCollapsed(!isSlidesCollapsed)}
             onToggleVideo={() => setIsVideoCollapsed(!isVideoCollapsed)}
             onUploadClick={handleUploadClick}
