@@ -107,17 +107,18 @@ OPENROUTER_API_KEY=xxx      # For LLM + embeddings
 
 ---
 
-## Task 4: Session API Routes
+## Task 4: Session API Routes ✅
 
 **Goal:** Implement session CRUD endpoints.
 
 ### Subtasks
-- [ ] 4.1 Create `app/api/sessions/route.ts` (GET list, POST create)
-- [ ] 4.2 Create `app/api/sessions/[id]/route.ts` (GET messages, DELETE)
-- [ ] 4.3 Create `app/api/sessions/[id]/generate-title/route.ts`
-- [ ] 4.4 Add auth checks to all endpoints
-- [ ] 4.5 Add ownership verification
-- [ ] 4.6 Test with curl/Postman
+- [x] 4.1 Create `app/api/sessions/route.ts` (GET list, POST create)
+- [x] 4.2 Create `app/api/sessions/[id]/route.ts` (DELETE)
+- [x] 4.3 Create `app/api/sessions/[id]/messages/route.ts` (GET messages with sources)
+- [x] 4.4 Create `app/api/sessions/[id]/generate-title/route.ts`
+- [x] 4.5 Add auth checks to all endpoints
+- [x] 4.6 Add ownership verification
+- [x] 4.7 Write comprehensive tests (25 test cases)
 
 ### Endpoint Summary
 | Method | Path | Purpose |
