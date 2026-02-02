@@ -85,7 +85,7 @@ export async function POST(req: Request) {
   });
 
   const result = streamText({
-    model: openrouter.chat('anthropic/claude-sonnet-4'),
+    model: openrouter.chat('x-ai/grok-4.1-fast'),
     system: SYSTEM_PROMPT,
     messages: await convertToModelMessages(messages),
     tools: {
