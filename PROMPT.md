@@ -1,5 +1,6 @@
 study @.agent/specs/README.md
 study @.agent/tasks/phase1-chat-rag.md and pick the most important task to do and work on it
+explore the codebase before starting tasks
 
 create tests before implementation (if not already covered)
 author property based tests or unit tests or use playwright cli for app functions (which ever is the best)
