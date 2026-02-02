@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCourses } from "@/hooks/useCourses";
 import { useDocumentUpload } from "@/hooks/useDocumentUpload";
 import { useDocuments } from "@/hooks/useDocuments";
+import { useLectures } from "@/hooks/useLectures";
 import { useResizePanel } from "@/hooks/useResizePanel";
 import { useChat } from "@/hooks/useChat";
 import { useChatSessions } from "@/hooks/useChatSessions";
@@ -38,10 +39,9 @@ export const StudyBuddyClient = () => {
   const [isMaterialsDialogOpen, setIsMaterialsDialogOpen] = useState(false);
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const [isPlaying, setIsPlaying] = useState(false);
-  // TODO: Wire these to RightPanel when document/lecture viewer integration is complete
-  const [, setSelectedDocumentId] = useState<string | null>(null);
-  const [, setLectureTimestamp] = useState<number>(0);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [selectedLectureId, setSelectedLectureId] = useState<string | null>(null);
+  const [lectureTimestamp, setLectureTimestamp] = useState<number>(0);
 
   const colors = isDarkMode ? darkModeColors : lightModeColors;
 
@@ -95,7 +95,10 @@ export const StudyBuddyClient = () => {
 
   const { documents, refetch: refetchDocuments, deleteDocument } = useDocuments(currentCourseId);
 
-  const { panelWidth, isResizing, handleMouseDown } = useResizePanel(400, 800, 400);
+  const { lectures } = useLectures(currentCourseId);
+
+  const { panelWidth: rightPanelWidth, isResizing: isRightPanelResizing, handleMouseDown: handleRightPanelMouseDown } = useResizePanel(400, 800, 400, "right");
+  const { panelWidth: sidebarWidth, isResizing: isSidebarResizing, handleMouseDown: handleSidebarMouseDown } = useResizePanel(200, 400, 280, "left");
 
   // Refetch documents when uploads complete
   useEffect(() => {
@@ -237,6 +240,7 @@ export const StudyBuddyClient = () => {
       });
     } else if (source.source_type === "lecture" && source.lecture_id && source.start_seconds !== undefined) {
       // Navigate to the specific timestamp in the lecture
+      setSelectedLectureId(source.lecture_id);
       setLectureTimestamp(source.start_seconds);
       setIsVideoCollapsed(false); // Expand video panel
       toast({
@@ -293,6 +297,9 @@ export const StudyBuddyClient = () => {
             onSelectSession={handleSelectSession}
             onNewChat={handleNewChat}
             onDeleteSession={handleDeleteSession}
+            sidebarWidth={sidebarWidth}
+            isResizing={isSidebarResizing}
+            onResizeMouseDown={handleSidebarMouseDown}
           />
 
           <MainContent
@@ -317,19 +324,20 @@ export const StudyBuddyClient = () => {
           />
 
           <RightPanel
-            panelWidth={panelWidth}
-            isResizing={isResizing}
+            panelWidth={rightPanelWidth}
+            isResizing={isRightPanelResizing}
             isSlidesCollapsed={isSlidesCollapsed}
             isVideoCollapsed={isVideoCollapsed}
             colors={colors}
             pageNumber={pageNumber}
-            isPlaying={isPlaying}
             hasPdfMaterials={documents.length > 0}
-            hasVideoMaterials={false}
-            onMouseDown={handleMouseDown}
+            hasVideoMaterials={lectures.length > 0}
+            selectedDocumentId={selectedDocumentId}
+            selectedLecture={lectures.find((l) => l.id === selectedLectureId) ?? null}
+            lectureTimestamp={lectureTimestamp}
+            onMouseDown={handleRightPanelMouseDown}
             onToggleSlides={() => setIsSlidesCollapsed(!isSlidesCollapsed)}
             onToggleVideo={() => setIsVideoCollapsed(!isVideoCollapsed)}
-            onSetPlaying={setIsPlaying}
             onUploadClick={handleUploadClick}
           />
         </>

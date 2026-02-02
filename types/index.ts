@@ -53,6 +53,21 @@ export type Document = {
   updated_at: string;
 };
 
+// Lecture from backend
+export type Lecture = {
+  id: string;
+  course_id: string;
+  panopto_session_id: string | null;
+  panopto_url: string;
+  stream_url: string;
+  title: string | null;
+  duration_seconds: number | null;
+  status: "pending" | "downloading" | "completed" | "failed";
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ColorScheme = {
   background: string;
   panel: string;
@@ -82,4 +97,5 @@ export type StoredMessage = {
   role: "user" | "assistant";
   content: string;
   created_at: string | null;
+  sources?: RAGSource[] | null;
 };

@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from "react";
 
-export const useResizePanel = (minWidth: number, maxWidth: number, initialWidth: number) => {
+type PanelSide = "left" | "right";
+
+export const useResizePanel = (
+  minWidth: number,
+  maxWidth: number,
+  initialWidth: number,
+  side: PanelSide = "right"
+) => {
   const [panelWidth, setPanelWidth] = useState(initialWidth);
   const [isResizing, setIsResizing] = useState(false);
 
@@ -15,7 +22,10 @@ export const useResizePanel = (minWidth: number, maxWidth: number, initialWidth:
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
 
-      const newWidth = window.innerWidth - e.clientX;
+      const newWidth = side === "right"
+        ? window.innerWidth - e.clientX
+        : e.clientX;
+
       if (newWidth >= minWidth && newWidth <= maxWidth) {
         setPanelWidth(newWidth);
       }
@@ -34,7 +44,7 @@ export const useResizePanel = (minWidth: number, maxWidth: number, initialWidth:
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isResizing, minWidth, maxWidth]);
+  }, [isResizing, minWidth, maxWidth, side]);
 
   return {
     panelWidth,
