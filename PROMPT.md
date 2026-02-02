@@ -1,0 +1,8 @@
+study @.agent/specs/README.md
+study @.agent/tasks/phase1-chat-rag.md and pick the most important task to do and work on it
+
+create tests before implementation (if not already covered)
+author property based tests or unit tests or use playwright cli for app functions (which ever is the best)
+study existing code before implementing
+after making changes to files run the tests
+when tests pass, commit and mark the task complete in phase1-chat-rag.md, dont move to the next task!

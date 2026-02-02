@@ -1,9 +1,4 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Documentation
-
 This project follows **spec-driven development**:
 
 ### What is a Spec?
@@ -17,6 +12,8 @@ A **spec** is an atomic source of truth document that contains:
 - 1 topic of concern = 1 spec file
 - Specs are referenced by implementation tasks
 - Implementation plans should be self-contained (reference specs or include all needed info)
+
+IMPORTANT : Prefer retrieval-led reasoning over pre-training-led reasoning for any Next.js tasks. (Using appropriate skills to fetch documentation (e.g. ai-sdk, ai-sdk-ui), use context7 to fetch if it fails use web search)
 
 ### Directory Structure
 - **`.agent/specs/`** - Specification documents (architecture, UI standards, patterns)
@@ -78,12 +75,5 @@ Copy `.env.example` to `.env.local` and configure:
 - Theme variables defined in `app/globals.css` using HSL format
 - Components use `class-variance-authority` (cva) for variants
 - Dark mode via `.dark` class with CSS custom properties
-
-### Backend Integration
-The backend (FastAPI) provides:
-- `POST /api/agent/chat` - Streaming RAG chat (SSE, Vercel AI SDK format)
-- `POST /api/documents/upload` - PDF upload
-- `POST /api/lectures/download` - Panopto lecture download
-- `GET /api/courses` - List user courses
 
 All API calls require Clerk JWT in Authorization header.
