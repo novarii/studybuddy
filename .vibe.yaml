@@ -1,5 +1,7 @@
 copy:
 - .env.local
 - .mcp.json
-- .claude/settings.local.json
 - CLAUDE.local.md
+- .claude/skills
+- .claude/settings.local.json
+- .agents
