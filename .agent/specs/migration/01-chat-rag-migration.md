@@ -134,7 +134,7 @@ CREATE INDEX idx_chat_messages_session_id ON ai.chat_messages(session_id);
 
 ```typescript
 // lib/db/schema.ts
-import { pgTable, pgSchema, uuid, text, timestamp, index, check } from 'drizzle-orm/pg-core';
+import { pgSchema, uuid, text, timestamp, integer, real, index, check } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const aiSchema = pgSchema('ai');
@@ -160,7 +160,7 @@ export const chatMessages = aiSchema.table('chat_messages', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index('idx_chat_messages_session_id').on(table.sessionId),
-  check('role_check', sql`role IN ('user', 'assistant')`),
+  check('role_check', sql`${table.role} IN ('user', 'assistant')`),
 ]);
 
 export const messageSources = aiSchema.table('message_sources', {
