@@ -2,8 +2,10 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Playwright configuration for StudyBuddy E2E tests
+ * Uses Clerk testing helpers for authentication
  *
  * @see https://playwright.dev/docs/test-configuration
+ * @see https://clerk.com/docs/testing/playwright
  */
 export default defineConfig({
   testDir: './tests',
@@ -29,11 +31,33 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
 
-  /* Configure projects for major browsers */
+  /* Configure projects */
   projects: [
+    // Global setup - runs once before all tests
     {
-      name: 'chromium',
+      name: 'global setup',
+      testDir: '.',
+      testMatch: /global\.setup\.ts/,
+    },
+
+    // Unauthenticated tests (API routes, auth flow)
+    {
+      name: 'unauthenticated',
+      testMatch: /\/(api-routes|auth-flow)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
+      dependencies: ['global setup'],
+    },
+
+    // Authenticated tests (chat, sessions) - use stored auth state
+    {
+      name: 'authenticated',
+      testMatch: /\/(chat-rag|session-management)\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        // Use prepared Clerk auth state
+        storageState: 'e2e/.clerk/user.json',
+      },
+      dependencies: ['global setup'],
     },
   ],
 

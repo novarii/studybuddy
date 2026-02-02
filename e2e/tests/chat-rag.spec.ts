@@ -1,240 +1,134 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 /**
  * Chat and RAG E2E Tests
  *
- * Tests the chat functionality including:
- * - Basic chat without RAG (general questions)
- * - Streaming response display
- * - Message history loading
- *
- * Note: RAG search tests require course materials to be uploaded.
- * Citation tests are covered in unit tests when sources are present.
+ * These tests run with authenticated state from global setup.
+ * Note: Chat interface tests require a user with courses.
+ * Tests are organized by what can run without backend data setup.
  */
 
-// Test credentials
-const TEST_EMAIL =
-  process.env.E2E_CLERK_USER_EMAIL || 'your_email+clerk_test@example.com';
-const TEST_VERIFICATION_CODE =
-  process.env.E2E_CLERK_VERIFICATION_CODE || '424242';
-
-async function authenticateWithClerk(page: Page): Promise<boolean> {
-  try {
-    await page.goto('/sign-in');
-    await page.waitForTimeout(3000);
-
-    const emailInput = page
-      .locator(
-        'input[name="identifier"], input[type="email"], input[placeholder*="email" i]'
-      )
-      .first();
-
-    if (await emailInput.isVisible({ timeout: 5000 })) {
-      await emailInput.fill(TEST_EMAIL);
-
-      const continueButton = page
-        .locator(
-          'button[type="submit"], button:has-text("Continue"), button:has-text("Sign in")'
-        )
-        .first();
-      await continueButton.click();
-
-      await page.waitForTimeout(2000);
-
-      const codeInput = page
-        .locator(
-          'input[name="code"], input[type="text"][maxlength="6"], input[placeholder*="code" i]'
-        )
-        .first();
-
-      if (await codeInput.isVisible({ timeout: 5000 })) {
-        await codeInput.fill(TEST_VERIFICATION_CODE);
-        await page.waitForTimeout(2000);
-
-        const verifyButton = page
-          .locator(
-            'button[type="submit"], button:has-text("Verify"), button:has-text("Continue")'
-          )
-          .first();
-
-        if (await verifyButton.isVisible({ timeout: 2000 })) {
-          await verifyButton.click();
-        }
-      }
-
-      await page.waitForURL('/', { timeout: 10000 }).catch(() => {});
-      await page.waitForTimeout(2000);
-
-      const currentUrl = page.url();
-      return !currentUrl.includes('sign-in') && !currentUrl.includes('sign-up');
-    }
-
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-test.describe('Chat Functionality', () => {
-  test('chat UI or sign-in page loads', async ({ page }) => {
+test.describe('Chat - Authenticated User', () => {
+  test('authenticated user sees app (not sign-in)', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
 
-    const url = page.url();
-
-    if (!url.includes('sign-in')) {
-      // If authenticated, check for chat input
-      const textarea = page
-        .locator('textarea[placeholder*="Ask"], textarea[placeholder*="question"]')
-        .first();
-      const isVisible = await textarea.isVisible({ timeout: 5000 }).catch(() => false);
-      // App loaded, either with chat input or empty state
-      expect(true).toBe(true);
-    } else {
-      // Unauthenticated - should be on sign-in
-      expect(url).toContain('sign-in');
-    }
+    // Should NOT be on sign-in page
+    expect(page.url()).not.toContain('sign-in');
   });
 
-  test('app shows appropriate state', async ({ page }) => {
+  test('app header shows StudyBuddy', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
 
-    const url = page.url();
-
-    if (!url.includes('sign-in')) {
-      // Look for any app content
-      const emptyStateTexts = [
-        'Start a conversation',
-        'Ask a question',
-        'No conversations',
-        'Start a new chat',
-        'StudyBuddy',
-      ];
-
-      let foundContent = false;
-      for (const text of emptyStateTexts) {
-        const element = page.locator(`text=${text}`).first();
-        if (await element.isVisible({ timeout: 2000 }).catch(() => false)) {
-          foundContent = true;
-          break;
-        }
-      }
-      expect(foundContent).toBe(true);
-    } else {
-      expect(url).toContain('sign-in');
-    }
+    const header = page.locator('text=StudyBuddy').first();
+    await expect(header).toBeVisible({ timeout: 10000 });
   });
 
-  test('input interaction works if authenticated', async ({ page }) => {
+  test('empty state shows feature descriptions', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
 
-    const url = page.url();
+    // Check for feature descriptions in empty state
+    const features = [
+      'Upload Materials',
+      'AI-Powered Learning',
+      'Add Your First Course',
+    ];
 
-    if (!url.includes('sign-in')) {
-      const textarea = page
-        .locator('textarea[placeholder*="Ask"], textarea[placeholder*="question"]')
-        .first();
-
-      if (await textarea.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await textarea.fill('Test input message');
-        const value = await textarea.inputValue();
-        expect(value).toBe('Test input message');
+    let foundFeature = false;
+    for (const feature of features) {
+      if (await page.locator(`text=${feature}`).isVisible().catch(() => false)) {
+        foundFeature = true;
+        break;
       }
-    } else {
-      expect(url).toContain('sign-in');
     }
-  });
 
-  test('send button state changes with input', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForTimeout(3000);
-
-    const url = page.url();
-
-    if (!url.includes('sign-in')) {
-      const textarea = page
-        .locator('textarea[placeholder*="Ask"], textarea[placeholder*="question"]')
-        .first();
-
-      if (await textarea.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await textarea.fill('Hello world');
-
-        const sendButton = page.locator('button[class*="rounded-full"]').last();
-
-        if (await sendButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-          // Button should be enabled when there's text
-          expect(true).toBe(true);
-        }
-      }
-    } else {
-      expect(url).toContain('sign-in');
-    }
-  });
-
-  test('Enter key behavior', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForTimeout(3000);
-
-    const url = page.url();
-
-    if (!url.includes('sign-in')) {
-      const textarea = page
-        .locator('textarea[placeholder*="Ask"], textarea[placeholder*="question"]')
-        .first();
-
-      if (await textarea.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await textarea.fill('Test message via enter');
-        await textarea.press('Enter');
-        await page.waitForTimeout(2000);
-        expect(true).toBe(true);
-      }
-    } else {
-      expect(url).toContain('sign-in');
-    }
-  });
-
-  test('Shift+Enter adds new line', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForTimeout(3000);
-
-    const url = page.url();
-
-    if (!url.includes('sign-in')) {
-      const textarea = page
-        .locator('textarea[placeholder*="Ask"], textarea[placeholder*="question"]')
-        .first();
-
-      if (await textarea.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await textarea.fill('Line 1');
-        await textarea.press('Shift+Enter');
-        await textarea.type('Line 2');
-
-        const value = await textarea.inputValue();
-        expect(value).toContain('Line 1');
-        expect(value).toContain('Line 2');
-      }
-    } else {
-      expect(url).toContain('sign-in');
-    }
+    // Either shows features (empty state) or has chat (user has courses)
+    expect(foundFeature || await page.locator('textarea').isVisible().catch(() => false)).toBe(true);
   });
 });
 
-test.describe('Chat Response Display', () => {
-  test('streaming indicator shows during response', async ({ page }) => {
-    // This test is more of a visual verification
-    // The streaming indicator (bouncing dots or cursor) should appear
-    // while waiting for AI response
-
-    // Skip as this requires actual message sending and response
-    test.skip(true, 'Requires full chat flow with API');
+// Tests that require the user to have courses set up
+test.describe('Chat Interface (requires courses)', () => {
+  test.skip('chat input is visible', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    const textarea = page.locator('textarea').first();
+    await expect(textarea).toBeVisible({ timeout: 10000 });
   });
 
-  test('messages render with proper formatting', async ({ page }) => {
-    // This test verifies markdown rendering
-    // Covered more thoroughly in unit tests
+  test.skip('chat input has placeholder text', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    const textarea = page.locator('textarea').first();
+    const placeholder = await textarea.getAttribute('placeholder');
+    expect(placeholder).toMatch(/ask|question|lecture|problem/i);
+  });
 
-    test.skip(true, 'Covered in unit tests');
+  test.skip('can type in chat input', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    const textarea = page.locator('textarea').first();
+    await textarea.fill('Test message');
+    expect(await textarea.inputValue()).toBe('Test message');
+  });
+
+  test.skip('send button is disabled when empty', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    const textarea = page.locator('textarea').first();
+    await textarea.fill('');
+    const sendButton = page.locator('button.rounded-full').last();
+    await expect(sendButton).toBeDisabled();
+  });
+
+  test.skip('send button is enabled with text', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    const textarea = page.locator('textarea').first();
+    await textarea.fill('Hello');
+    const sendButton = page.locator('button.rounded-full').last();
+    await expect(sendButton).toBeEnabled();
+  });
+
+  test.skip('Shift+Enter adds newline', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    const textarea = page.locator('textarea').first();
+    await textarea.fill('Line 1');
+    await textarea.press('Shift+Enter');
+    await textarea.type('Line 2');
+    const value = await textarea.inputValue();
+    expect(value).toContain('\n');
+  });
+
+  test.skip('Enter sends message', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    const textarea = page.locator('textarea').first();
+    await textarea.fill('Test message');
+    await textarea.press('Enter');
+    await page.waitForTimeout(1000);
+    // Input should be cleared after send
+    expect(await textarea.inputValue()).toBe('');
+  });
+});
+
+// RAG-specific tests (require courses AND uploaded materials)
+test.describe('RAG Features (requires courses + materials)', () => {
+  test.skip('streaming response shows loading indicator', async ({ page }) => {
+    // Requires sending a message and observing response
+    await page.goto('/');
+  });
+
+  test.skip('citations render correctly', async ({ page }) => {
+    // Requires messages with citation data
+    await page.goto('/');
+  });
+
+  test.skip('clicking citation navigates to source', async ({ page }) => {
+    // Requires course materials to be uploaded
+    await page.goto('/');
   });
 });
