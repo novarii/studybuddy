@@ -44,3 +44,4 @@ _legacy/
 
 # ai
 .claude/
+.mcp.json

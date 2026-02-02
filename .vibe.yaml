@@ -5,3 +5,4 @@ copy:
 - .claude/skills
 - .claude/settings.local.json
 - .agents
+- .mcp.json
