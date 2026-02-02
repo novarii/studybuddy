@@ -80,19 +80,19 @@ OPENROUTER_API_KEY=xxx      # For LLM + embeddings
 
 ---
 
-## Task 3: Chat API Route
+## Task 3: Chat API Route ✅
 
 **Goal:** Implement streaming chat with RAG using AI SDK.
 
 ### Subtasks
-- [ ] 3.1 Create `app/api/chat/route.ts` with POST handler
-- [ ] 3.2 Implement auth check (Clerk)
-- [ ] 3.3 Implement session ownership verification
-- [ ] 3.4 Implement `search_course_materials` tool
-- [ ] 3.5 Implement user message persistence
-- [ ] 3.6 Implement assistant message persistence (onFinish)
-- [ ] 3.7 Implement source persistence (onFinish)
-- [ ] 3.8 Test streaming response format
+- [x] 3.1 Create `app/api/chat/route.ts` with POST handler
+- [x] 3.2 Implement auth check (Clerk)
+- [x] 3.3 Implement session ownership verification
+- [x] 3.4 Implement `search_course_materials` tool
+- [x] 3.5 Implement user message persistence
+- [x] 3.6 Implement assistant message persistence (onFinish)
+- [x] 3.7 Implement source persistence (onFinish)
+- [x] 3.8 Test streaming response format
 - [ ] 3.9 Test with frontend (manual)
 
 ### Key Implementation Details
@@ -100,7 +100,7 @@ OPENROUTER_API_KEY=xxx      # For LLM + embeddings
 - Use `@openrouter/ai-sdk-provider` for model
 - Tool executes RAG search, collects sources
 - `onFinish` callback saves messages + sources
-- Return `toDataStreamResponse()`
+- Return `toUIMessageStreamResponse()`
 
 ### Deliverables
 - `app/api/chat/route.ts` - Full chat endpoint
