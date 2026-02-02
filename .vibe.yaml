@@ -7,3 +7,4 @@ copy:
 - .agents
 - .mcp.json
 - .legacy/
+network: vibe-net
