@@ -26,8 +26,8 @@
 - [x] 1.4 Create `lib/db/schema.ts` with `chatSessions`, `chatMessages` tables
 - [x] 1.5 Add existing `messageSources` table to schema (for type safety)
 - [x] 1.6 Generate migration with `drizzle-kit generate`
-- [ ] 1.7 Run migration against dev database
-- [ ] 1.8 Verify tables created in `ai` schema
+- [x] 1.7 Run migration against dev database
+- [x] 1.8 Verify tables created in `ai` schema
 
 ### Subtasks - Vitest
 - [x] 1.9 Install test dependencies: `vitest`, `@vitejs/plugin-react`, `@testing-library/react`, `@testing-library/dom`, `jsdom`
@@ -53,12 +53,12 @@
 **Goal:** Set up AI/embedding services that the chat route depends on.
 
 ### Subtasks
-- [ ] 2.1 Create `lib/ai/embeddings.ts` with OpenRouter embed function
-- [ ] 2.2 Create `lib/ai/retrieval.ts` with pgvector search functions
-- [ ] 2.3 Create `lib/ai/prompts.ts` with system prompt
-- [ ] 2.4 Create `lib/ai/types.ts` with RAGSource and related types
-- [ ] 2.5 Test embedding function in isolation
-- [ ] 2.6 Test retrieval against knowledge tables (may need dimension update)
+- [x] 2.1 Create `lib/ai/embeddings.ts` with OpenRouter embed function
+- [x] 2.2 Create `lib/ai/retrieval.ts` with pgvector search functions
+- [x] 2.3 Create `lib/ai/prompts.ts` with system prompt
+- [x] 2.4 Create `lib/ai/types.ts` with RAGSource and related types
+- [x] 2.5 Test embedding function in isolation
+- [x] 2.6 Test retrieval against knowledge tables (may need dimension update)
 
 ### Environment Variables Needed
 ```
@@ -67,8 +67,8 @@ OPENROUTER_API_KEY=xxx      # For LLM + embeddings
 ```
 
 ### Subtasks - Tests
-- [ ] 2.7 Write tests for `embeddings.ts` (mock fetch)
-- [ ] 2.8 Write tests for `retrieval.ts` (context formatting)
+- [x] 2.7 Write tests for `embeddings.ts` (mock fetch)
+- [x] 2.8 Write tests for `retrieval.ts` (context formatting)
 
 ### Deliverables
 - `lib/ai/embeddings.ts` - OpenRouter embedding function
