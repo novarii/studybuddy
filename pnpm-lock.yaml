@@ -10,10 +10,13 @@ importers:
     dependencies:
       '@ai-sdk/react':
         specifier: ^3.0.69
-        version: 3.0.69(react@19.2.1)(zod@4.2.1)
+        version: 3.0.69(react@19.2.1)(zod@4.3.6)
       '@clerk/nextjs':
         specifier: ^6.36.4
         version: 6.36.4(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@openrouter/ai-sdk-provider':
+        specifier: ^2.1.1
+        version: 2.1.1(ai@6.0.67(zod@4.3.6))(zod@4.3.6)
       '@radix-ui/react-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -37,7 +40,7 @@ importers:
         version: 0.5.19(tailwindcss@4.1.18)
       ai:
         specifier: ^6.0.67
-        version: 6.0.67(zod@4.2.1)
+        version: 6.0.67(zod@4.3.6)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -83,6 +86,9 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.1.18)
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4
@@ -1156,6 +1162,13 @@ packages:
   '@nolyfill/is-core-module@1.0.39':
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
+
+  '@openrouter/ai-sdk-provider@2.1.1':
+    resolution: {integrity: sha512-UypPbVnSExxmG/4Zg0usRiit3auvQVrjUXSyEhm0sZ9GQnW/d8p/bKgCk2neh1W5YyRSo7PNQvCrAEBHZnqQkQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      ai: ^6.0.0
+      zod: ^3.25.0 || ^4.0.0
 
   '@opentelemetry/api@1.9.0':
     resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
@@ -4258,8 +4271,8 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
-  zod@4.2.1:
-    resolution: {integrity: sha512-0wZ1IRqGGhMP76gLqz8EyfBXKk0J2qo2+H3fi4mcUP/KtTocoX08nmIAHl1Z2kJIZbZee8KOpBCSNPRgauucjw==}
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -4270,28 +4283,28 @@ snapshots:
 
   '@adobe/css-tools@4.4.4': {}
 
-  '@ai-sdk/gateway@3.0.32(zod@4.2.1)':
+  '@ai-sdk/gateway@3.0.32(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.7
-      '@ai-sdk/provider-utils': 4.0.13(zod@4.2.1)
+      '@ai-sdk/provider-utils': 4.0.13(zod@4.3.6)
       '@vercel/oidc': 3.1.0
-      zod: 4.2.1
+      zod: 4.3.6
 
-  '@ai-sdk/provider-utils@4.0.13(zod@4.2.1)':
+  '@ai-sdk/provider-utils@4.0.13(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.7
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.0.6
-      zod: 4.2.1
+      zod: 4.3.6
 
   '@ai-sdk/provider@3.0.7':
     dependencies:
       json-schema: 0.4.0
 
-  '@ai-sdk/react@3.0.69(react@19.2.1)(zod@4.2.1)':
+  '@ai-sdk/react@3.0.69(react@19.2.1)(zod@4.3.6)':
     dependencies:
-      '@ai-sdk/provider-utils': 4.0.13(zod@4.2.1)
-      ai: 6.0.67(zod@4.2.1)
+      '@ai-sdk/provider-utils': 4.0.13(zod@4.3.6)
+      ai: 6.0.67(zod@4.3.6)
       react: 19.2.1
       swr: 2.4.0(react@19.2.1)
       throttleit: 2.1.0
@@ -5087,6 +5100,11 @@ snapshots:
       fastq: 1.19.1
 
   '@nolyfill/is-core-module@1.0.39': {}
+
+  '@openrouter/ai-sdk-provider@2.1.1(ai@6.0.67(zod@4.3.6))(zod@4.3.6)':
+    dependencies:
+      ai: 6.0.67(zod@4.3.6)
+      zod: 4.3.6
 
   '@opentelemetry/api@1.9.0': {}
 
@@ -5903,13 +5921,13 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  ai@6.0.67(zod@4.2.1):
+  ai@6.0.67(zod@4.3.6):
     dependencies:
-      '@ai-sdk/gateway': 3.0.32(zod@4.2.1)
+      '@ai-sdk/gateway': 3.0.32(zod@4.3.6)
       '@ai-sdk/provider': 3.0.7
-      '@ai-sdk/provider-utils': 4.0.13(zod@4.2.1)
+      '@ai-sdk/provider-utils': 4.0.13(zod@4.3.6)
       '@opentelemetry/api': 1.9.0
-      zod: 4.2.1
+      zod: 4.3.6
 
   ajv@6.12.6:
     dependencies:
@@ -6567,8 +6585,8 @@ snapshots:
       '@babel/parser': 7.28.5
       eslint: 9.39.2(jiti@2.6.1)
       hermes-parser: 0.25.1
-      zod: 4.2.1
-      zod-validation-error: 4.0.2(zod@4.2.1)
+      zod: 4.3.6
+      zod-validation-error: 4.0.2(zod@4.3.6)
     transitivePeerDependencies:
       - supports-color
 
@@ -8729,10 +8747,10 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod-validation-error@4.0.2(zod@4.2.1):
+  zod-validation-error@4.0.2(zod@4.3.6):
     dependencies:
-      zod: 4.2.1
+      zod: 4.3.6
 
-  zod@4.2.1: {}
+  zod@4.3.6: {}
 
   zwitch@2.0.4: {}
