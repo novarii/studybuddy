@@ -137,17 +137,19 @@ OPENROUTER_API_KEY=xxx      # For LLM + embeddings
 
 ---
 
-## Task 5: Frontend Integration
+## Task 5: Frontend Integration ✅
 
 **Goal:** Update frontend to use new local API routes.
 
 ### Subtasks
-- [ ] 5.1 Update `hooks/useChat.ts` to POST to `/api/chat`
-- [ ] 5.2 Update `lib/api.ts` session endpoints to use local routes
+- [x] 5.1 Update `hooks/useChat.ts` to POST to `/api/chat`
+- [x] 5.2 Update `lib/api.ts` session endpoints to use local routes
 - [ ] 5.3 Verify `onData` callback still receives sources
 - [ ] 5.4 Verify `sourcesMap` populates correctly
 - [ ] 5.5 Test citation clicks navigate correctly
 - [ ] 5.6 Test session create/list/delete flow
+
+**Note:** Subtasks 5.3-5.6 require manual testing with a running server and database.
 
 ### Changes Required
 ```typescript
