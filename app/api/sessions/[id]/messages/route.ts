@@ -38,6 +38,21 @@ export async function GET(req: Request, { params }: RouteParams) {
     where: eq(messageSources.sessionId, sessionId),
   });
 
+  // Define the shape of sources we return to the client
+  type SourceResponse = {
+    sourceId: string;
+    sourceType: string;
+    chunkNumber: number;
+    contentPreview: string | null;
+    documentId: string | null;
+    slideNumber: number | null;
+    lectureId: string | null;
+    startSeconds: number | null;
+    endSeconds: number | null;
+    courseId: string | null;
+    title: string | null;
+  };
+
   // Group sources by messageId
   const sourcesByMessageId = sources.reduce(
     (acc, source) => {
@@ -59,7 +74,7 @@ export async function GET(req: Request, { params }: RouteParams) {
       });
       return acc;
     },
-    {} as Record<string, typeof sources[0][]>
+    {} as Record<string, SourceResponse[]>
   );
 
   return Response.json({
