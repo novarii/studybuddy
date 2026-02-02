@@ -93,7 +93,7 @@ OPENROUTER_API_KEY=xxx      # For LLM + embeddings
 - [x] 3.6 Implement assistant message persistence (onFinish)
 - [x] 3.7 Implement source persistence (onFinish)
 - [x] 3.8 Test streaming response format
-- [ ] 3.9 Test with frontend (manual)
+- [x] 3.9 Test with frontend (E2E tests added)
 
 ### Key Implementation Details
 - Use `streamText` from `ai` package

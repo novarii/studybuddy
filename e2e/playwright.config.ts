@@ -51,7 +51,7 @@ export default defineConfig({
     // Authenticated tests (chat, sessions) - use stored auth state
     {
       name: 'authenticated',
-      testMatch: /\/(chat-rag|session-management)\.spec\.ts/,
+      testMatch: /\/(chat-rag|session-management|chat-frontend-integration)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         // Use prepared Clerk auth state
