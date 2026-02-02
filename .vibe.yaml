@@ -7,4 +7,4 @@ copy:
 - .agents
 - .mcp.json
 - .legacy/
-network: vibe-net
+network: studybuddy-net
