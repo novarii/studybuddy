@@ -7,6 +7,7 @@ export default defineConfig({
   schema: './lib/db/schema.ts',
   out: './drizzle/migrations',
   dialect: 'postgresql',
+  schemaFilter: ['ai'],
   dbCredentials: {
     url: process.env.DATABASE_URL!,
   },
