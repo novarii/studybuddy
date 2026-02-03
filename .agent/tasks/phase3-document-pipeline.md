@@ -27,7 +27,7 @@
 ### Subtasks - Database Schema
 - [x] 1.4 Add `documents` table to `lib/db/schema.ts`
 - [x] 1.5 Generate migration with `drizzle-kit generate`
-- [ ] 1.6 Run migration against dev database
+- [x] 1.6 Run migration against dev database
 - [x] 1.7 Verify table created with checksum unique constraint
 - [x] 1.8 Export `documents` from `lib/db/index.ts`
 
