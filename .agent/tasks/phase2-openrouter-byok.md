@@ -84,16 +84,16 @@ ENCRYPTION_KEY=             # Generate with: openssl rand -base64 32
 **Goal:** Implement OpenRouter OAuth PKCE flow endpoints.
 
 ### Subtasks
-- [ ] 3.1 Create `app/api/openrouter/connect/route.ts` (GET - initiate OAuth)
-- [ ] 3.2 Create `app/api/openrouter/callback/route.ts` (GET - handle callback)
-- [ ] 3.3 Create `app/api/openrouter/status/route.ts` (GET - connection status)
-- [ ] 3.4 Create `app/api/openrouter/disconnect/route.ts` (DELETE - remove key)
-- [ ] 3.5 Add auth checks to all endpoints
-- [ ] 3.6 Implement PKCE challenge generation (SHA-256)
-- [ ] 3.7 Implement secure cookie for code_verifier storage
-- [ ] 3.8 Implement OpenRouter token exchange
-- [ ] 3.9 Implement key encryption before database storage
-- [ ] 3.10 Fetch and cache key metadata (credits, limits)
+- [x] 3.1 Create `app/api/openrouter/connect/route.ts` (GET - initiate OAuth)
+- [x] 3.2 Create `app/api/openrouter/callback/route.ts` (GET - handle callback)
+- [x] 3.3 Create `app/api/openrouter/status/route.ts` (GET - connection status)
+- [x] 3.4 Create `app/api/openrouter/disconnect/route.ts` (DELETE - remove key)
+- [x] 3.5 Add auth checks to all endpoints
+- [x] 3.6 Implement PKCE challenge generation (SHA-256)
+- [x] 3.7 Implement secure cookie for code_verifier storage
+- [x] 3.8 Implement OpenRouter token exchange
+- [x] 3.9 Implement key encryption before database storage
+- [x] 3.10 Fetch and cache key metadata (credits, limits)
 
 ### Endpoint Summary
 | Method | Path | Purpose |
@@ -159,13 +159,13 @@ const openrouter = createOpenRouter({ apiKey });
 **Goal:** Comprehensive testing of BYOK functionality.
 
 ### Subtasks - Unit Tests
-- [ ] 5.1 Test encryption/decryption round-trip
-- [ ] 5.2 Test PKCE challenge generation
-- [ ] 5.3 Test status endpoint responses (connected vs not connected)
-- [ ] 5.4 Test disconnect endpoint
+- [x] 5.1 Test encryption/decryption round-trip
+- [x] 5.2 Test PKCE challenge generation
+- [x] 5.3 Test status endpoint responses (connected vs not connected)
+- [x] 5.4 Test disconnect endpoint
 
 ### Subtasks - Integration Tests
-- [ ] 5.5 Test OAuth flow with mocked OpenRouter endpoints
+- [x] 5.5 Test OAuth flow with mocked OpenRouter endpoints
 - [ ] 5.6 Test chat route uses user key when available
 - [ ] 5.7 Test chat route falls back to shared key
 - [ ] 5.8 Test invalid key handling
@@ -217,11 +217,11 @@ Phase 2 is complete when:
 ## Security Checklist
 
 - [x] API keys encrypted with AES-256-GCM before storage
-- [ ] Code verifier stored in HttpOnly, Secure cookie
-- [ ] Decrypted keys never sent to frontend
-- [ ] Decrypted keys never logged
-- [ ] HTTPS enforced for OAuth redirects
-- [ ] PKCE prevents authorization code interception
+- [x] Code verifier stored in HttpOnly, Secure cookie
+- [x] Decrypted keys never sent to frontend
+- [x] Decrypted keys never logged
+- [x] HTTPS enforced for OAuth redirects
+- [x] PKCE prevents authorization code interception
 
 ---
 
