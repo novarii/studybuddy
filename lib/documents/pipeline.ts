@@ -5,7 +5,7 @@ import { storeDocument } from '@/lib/storage/documents';
 import { splitPdfIntoPages } from './pdf-splitter';
 import { rebuildPdfWithoutPages } from './pdf-rebuilder';
 import { processPages } from './page-processor';
-import { deduplicatePages } from './deduplication';
+import { deduplicateByEmbeddings } from './deduplication';
 import {
   generateChunkEmbeddings,
   insertChunks,
@@ -64,9 +64,9 @@ export async function updateDocumentStatus(
  * 1. Get user's API key (BYOK or fallback)
  * 2. Split PDF into single-page PDFs
  * 3. Process pages in parallel with Gemini extraction
- * 4. Deduplicate similar pages
- * 5. Generate embeddings for unique pages
- * 6. Insert chunks into vector database
+ * 4. Generate embeddings for all successful pages
+ * 5. Deduplicate using cosine similarity on embeddings
+ * 6. Insert only unique chunks into vector database
  * 7. Rebuild lean PDF without duplicates
  * 8. Update document status to completed
  *
@@ -92,19 +92,32 @@ export async function processDocument(
     // 3. Process pages in parallel with Gemini extraction
     const pageResults = await processPages(pages, apiKey);
 
-    // 4. Deduplicate similar pages
-    const { unique, duplicateIndices } = deduplicatePages(pageResults);
-
     // Track failed pages
     const failedPages = pageResults
       .filter((r) => !r.success)
       .map((r) => r.pageNumber);
 
-    // 5. Generate embeddings for unique pages
-    const embeddings = await generateChunkEmbeddings(unique, apiKey);
+    // Filter to only successful pages for embedding
+    const successfulPages = pageResults.filter((r) => r.success && r.content);
 
-    // 6. Prepare and insert chunks into vector database
-    const chunks = prepareChunks(unique, embeddings);
+    // 4. Generate embeddings for ALL successful pages
+    const allEmbeddings = await generateChunkEmbeddings(successfulPages, apiKey);
+
+    // 5. Deduplicate using cosine similarity on embeddings
+    const { uniqueIndices, duplicateIndices: dedupedIndices } =
+      deduplicateByEmbeddings(allEmbeddings);
+
+    // Map back to original page numbers for PDF rebuilding
+    const duplicatePageNumbers = dedupedIndices.map(
+      (i) => successfulPages[i].pageNumber
+    );
+
+    // Filter to only unique pages and embeddings
+    const uniquePages = uniqueIndices.map((i) => successfulPages[i]);
+    const uniqueEmbeddings = uniqueIndices.map((i) => allEmbeddings[i]);
+
+    // 6. Prepare and insert only unique chunks into vector database
+    const chunks = prepareChunks(uniquePages, uniqueEmbeddings);
     await insertChunks(chunks, {
       documentId,
       courseId,
@@ -113,7 +126,10 @@ export async function processDocument(
     });
 
     // 7. Rebuild lean PDF without duplicate pages
-    const leanPdfBytes = await rebuildPdfWithoutPages(pdfBytes, duplicateIndices);
+    const leanPdfBytes = await rebuildPdfWithoutPages(
+      pdfBytes,
+      duplicatePageNumbers
+    );
 
     // Store processed PDF
     const processedFilePath = await storeDocument(
@@ -126,7 +142,7 @@ export async function processDocument(
     // 8. Update document status to completed
     await updateDocumentStatus(documentId, {
       status: 'completed',
-      uniquePageCount: unique.length,
+      uniquePageCount: uniquePages.length,
       failedPages: failedPages.length > 0 ? failedPages : null,
       processedFilePath,
       processedAt: new Date(),
@@ -134,8 +150,8 @@ export async function processDocument(
 
     console.log(
       `[DocumentPipeline] Document ${documentId} processed successfully. ` +
-        `Pages: ${pages.length}, Unique: ${unique.length}, ` +
-        `Duplicates removed: ${duplicateIndices.length}, Failed: ${failedPages.length}`
+        `Pages: ${pages.length}, Unique: ${uniquePages.length}, ` +
+        `Duplicates removed: ${duplicatePageNumbers.length}, Failed: ${failedPages.length}`
     );
   } catch (error) {
     console.error(`[DocumentPipeline] Document ${documentId} processing failed:`, error);

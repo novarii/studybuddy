@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   jaccardSimilarity,
   deduplicatePages,
+  cosineSimilarity,
+  deduplicateByEmbeddings,
   SIMILARITY_THRESHOLD,
+  COSINE_SIMILARITY_THRESHOLD,
 } from '@/lib/documents/deduplication';
 import type { PageResult } from '@/lib/documents/page-processor';
 
@@ -325,6 +328,232 @@ describe('deduplicatePages', () => {
       expect(unique).toHaveLength(1);
       expect(unique[0].pageNumber).toBe(5);
       expect(duplicateIndices).toEqual([3, 1]);
+    });
+  });
+});
+
+describe('cosineSimilarity', () => {
+  describe('basic similarity calculations', () => {
+    it('should return 1 for identical vectors', () => {
+      const vec = [0.1, 0.2, 0.3, 0.4, 0.5];
+      expect(cosineSimilarity(vec, vec)).toBeCloseTo(1, 5);
+    });
+
+    it('should return 1 for parallel vectors (same direction)', () => {
+      const vec1 = [1, 2, 3];
+      const vec2 = [2, 4, 6]; // Same direction, different magnitude
+      expect(cosineSimilarity(vec1, vec2)).toBeCloseTo(1, 5);
+    });
+
+    it('should return -1 for opposite vectors', () => {
+      const vec1 = [1, 2, 3];
+      const vec2 = [-1, -2, -3];
+      expect(cosineSimilarity(vec1, vec2)).toBeCloseTo(-1, 5);
+    });
+
+    it('should return 0 for orthogonal vectors', () => {
+      const vec1 = [1, 0, 0];
+      const vec2 = [0, 1, 0];
+      expect(cosineSimilarity(vec1, vec2)).toBeCloseTo(0, 5);
+    });
+
+    it('should handle normalized vectors (unit length)', () => {
+      // Normalized vectors - cosine similarity equals dot product
+      const vec1 = [0.6, 0.8, 0]; // magnitude = 1
+      const vec2 = [0.8, 0.6, 0]; // magnitude = 1
+      const expected = 0.6 * 0.8 + 0.8 * 0.6; // = 0.96
+      expect(cosineSimilarity(vec1, vec2)).toBeCloseTo(expected, 5);
+    });
+
+    it('should calculate correctly for typical embedding dimensions', () => {
+      // Simulate small embedding vectors
+      const vec1 = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+      const vec2 = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+      expect(cosineSimilarity(vec1, vec2)).toBeCloseTo(1, 5);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should return 1 for two empty vectors', () => {
+      expect(cosineSimilarity([], [])).toBe(1);
+    });
+
+    it('should return 1 for two zero vectors', () => {
+      expect(cosineSimilarity([0, 0, 0], [0, 0, 0])).toBe(1);
+    });
+
+    it('should throw for vectors of different lengths', () => {
+      expect(() => cosineSimilarity([1, 2], [1, 2, 3])).toThrow(
+        'Vector length mismatch'
+      );
+    });
+
+    it('should handle very small values', () => {
+      const vec1 = [1e-10, 2e-10, 3e-10];
+      const vec2 = [1e-10, 2e-10, 3e-10];
+      expect(cosineSimilarity(vec1, vec2)).toBeCloseTo(1, 5);
+    });
+
+    it('should handle single element vectors', () => {
+      expect(cosineSimilarity([5], [5])).toBeCloseTo(1, 5);
+      expect(cosineSimilarity([5], [-5])).toBeCloseTo(-1, 5);
+    });
+  });
+
+  describe('threshold constant', () => {
+    it('should export COSINE_SIMILARITY_THRESHOLD as 0.95', () => {
+      expect(COSINE_SIMILARITY_THRESHOLD).toBe(0.95);
+    });
+  });
+});
+
+describe('deduplicateByEmbeddings', () => {
+  describe('basic deduplication', () => {
+    it('should keep all unique embeddings', () => {
+      const embeddings = [
+        [1, 0, 0], // Orthogonal to others
+        [0, 1, 0],
+        [0, 0, 1],
+      ];
+
+      const { uniqueIndices, duplicateIndices } =
+        deduplicateByEmbeddings(embeddings);
+
+      expect(uniqueIndices).toEqual([0, 1, 2]);
+      expect(duplicateIndices).toHaveLength(0);
+    });
+
+    it('should identify identical embeddings as duplicates', () => {
+      // Use orthogonal vectors to ensure they're truly different
+      const embeddings = [
+        [1, 0, 0], // First unique
+        [0, 1, 0], // Second unique (orthogonal)
+        [1, 0, 0], // Duplicate of index 0
+      ];
+
+      const { uniqueIndices, duplicateIndices } =
+        deduplicateByEmbeddings(embeddings);
+
+      expect(uniqueIndices).toEqual([0, 1]);
+      expect(duplicateIndices).toEqual([2]);
+    });
+
+    it('should identify near-identical embeddings above threshold', () => {
+      // Create two vectors with >95% cosine similarity
+      const base = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+      const nearDupe = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.01];
+
+      const similarity = cosineSimilarity(base, nearDupe);
+      expect(similarity).toBeGreaterThan(0.95);
+
+      const embeddings = [base, nearDupe];
+      const { uniqueIndices, duplicateIndices } =
+        deduplicateByEmbeddings(embeddings);
+
+      expect(uniqueIndices).toEqual([0]);
+      expect(duplicateIndices).toEqual([1]);
+    });
+
+    it('should keep embeddings below threshold as unique', () => {
+      // Create two vectors with <95% cosine similarity
+      const vec1 = [1, 0, 0, 0];
+      const vec2 = [0.9, 0.4, 0, 0]; // Cosine similarity ≈ 0.91
+
+      const similarity = cosineSimilarity(vec1, vec2);
+      expect(similarity).toBeLessThan(0.95);
+      expect(similarity).toBeGreaterThan(0.9);
+
+      const embeddings = [vec1, vec2];
+      const { uniqueIndices, duplicateIndices } =
+        deduplicateByEmbeddings(embeddings);
+
+      expect(uniqueIndices).toEqual([0, 1]);
+      expect(duplicateIndices).toHaveLength(0);
+    });
+  });
+
+  describe('custom threshold', () => {
+    it('should respect custom threshold', () => {
+      const vec1 = [1, 0, 0];
+      const vec2 = [0.95, 0.3, 0]; // Cosine similarity ≈ 0.95
+
+      // With default 0.95 threshold, might be borderline
+      const similarity = cosineSimilarity(vec1, vec2);
+
+      // Use a lower threshold
+      const { uniqueIndices: unique1 } = deduplicateByEmbeddings(
+        [vec1, vec2],
+        0.9
+      );
+      expect(unique1).toEqual([0]); // vec2 is duplicate with 0.9 threshold
+
+      // Use a higher threshold
+      const { uniqueIndices: unique2 } = deduplicateByEmbeddings(
+        [vec1, vec2],
+        0.99
+      );
+      expect(unique2).toEqual([0, 1]); // Both unique with 0.99 threshold
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle empty array', () => {
+      const { uniqueIndices, duplicateIndices } = deduplicateByEmbeddings([]);
+
+      expect(uniqueIndices).toHaveLength(0);
+      expect(duplicateIndices).toHaveLength(0);
+    });
+
+    it('should handle single embedding', () => {
+      const { uniqueIndices, duplicateIndices } = deduplicateByEmbeddings([
+        [0.1, 0.2, 0.3],
+      ]);
+
+      expect(uniqueIndices).toEqual([0]);
+      expect(duplicateIndices).toHaveLength(0);
+    });
+
+    it('should handle all identical embeddings', () => {
+      const same = [0.1, 0.2, 0.3];
+      const embeddings = [same, same, same, same];
+
+      const { uniqueIndices, duplicateIndices } =
+        deduplicateByEmbeddings(embeddings);
+
+      expect(uniqueIndices).toEqual([0]);
+      expect(duplicateIndices).toEqual([1, 2, 3]);
+    });
+  });
+
+  describe('multiple duplicates', () => {
+    it('should handle multiple groups of duplicates', () => {
+      const groupA = [1, 0, 0];
+      const groupB = [0, 1, 0];
+
+      const embeddings = [
+        groupA, // 0: unique
+        groupB, // 1: unique
+        groupA, // 2: dup of 0
+        groupB, // 3: dup of 1
+        groupA, // 4: dup of 0
+      ];
+
+      const { uniqueIndices, duplicateIndices } =
+        deduplicateByEmbeddings(embeddings);
+
+      expect(uniqueIndices).toEqual([0, 1]);
+      expect(duplicateIndices.sort((a, b) => a - b)).toEqual([2, 3, 4]);
+    });
+
+    it('should keep first occurrence as unique', () => {
+      const same = [0.5, 0.5, 0.5];
+      const embeddings = [same, same, same];
+
+      const { uniqueIndices, duplicateIndices } =
+        deduplicateByEmbeddings(embeddings);
+
+      expect(uniqueIndices).toEqual([0]);
+      expect(duplicateIndices).toEqual([1, 2]);
     });
   });
 });

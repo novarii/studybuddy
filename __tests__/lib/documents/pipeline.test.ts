@@ -41,7 +41,7 @@ vi.mock('@/lib/documents/page-processor', () => ({
 }));
 
 vi.mock('@/lib/documents/deduplication', () => ({
-  deduplicatePages: vi.fn(),
+  deduplicateByEmbeddings: vi.fn(),
 }));
 
 vi.mock('@/lib/documents/chunk-ingestion', () => ({
@@ -56,7 +56,7 @@ import { storeDocument } from '@/lib/storage/documents';
 import { splitPdfIntoPages } from '@/lib/documents/pdf-splitter';
 import { rebuildPdfWithoutPages } from '@/lib/documents/pdf-rebuilder';
 import { processPages } from '@/lib/documents/page-processor';
-import { deduplicatePages } from '@/lib/documents/deduplication';
+import { deduplicateByEmbeddings } from '@/lib/documents/deduplication';
 import {
   generateChunkEmbeddings,
   insertChunks,
@@ -94,17 +94,17 @@ describe('processDocument', () => {
       { pageNumber: 1, content: 'Page 2 content', success: true },
       { pageNumber: 2, content: 'Page 1 content duplicate', success: true },
     ] as PageResult[]);
-    (deduplicatePages as Mock).mockReturnValue({
-      unique: [
-        { pageNumber: 0, content: 'Page 1 content', success: true },
-        { pageNumber: 1, content: 'Page 2 content', success: true },
-      ],
-      duplicateIndices: [2],
-    });
+    // Embeddings for all 3 successful pages
     (generateChunkEmbeddings as Mock).mockResolvedValue([
       [0.1, 0.2, 0.3],
       [0.4, 0.5, 0.6],
+      [0.1, 0.2, 0.3], // Duplicate of first
     ]);
+    // Deduplication returns indices: pages 0 and 1 unique, page 2 is duplicate
+    (deduplicateByEmbeddings as Mock).mockReturnValue({
+      uniqueIndices: [0, 1],
+      duplicateIndices: [2],
+    });
     (prepareChunks as Mock).mockReturnValue([
       { content: 'Page 1 content', embedding: [0.1, 0.2, 0.3], pageNumber: 0 },
       { content: 'Page 2 content', embedding: [0.4, 0.5, 0.6], pageNumber: 1 },
@@ -121,8 +121,8 @@ describe('processDocument', () => {
     expect(getUserApiKey).toHaveBeenCalledWith('user-456');
     expect(splitPdfIntoPages).toHaveBeenCalledWith(mockPdfBytes);
     expect(processPages).toHaveBeenCalled();
-    expect(deduplicatePages).toHaveBeenCalled();
     expect(generateChunkEmbeddings).toHaveBeenCalled();
+    expect(deduplicateByEmbeddings).toHaveBeenCalled();
     expect(insertChunks).toHaveBeenCalled();
     expect(rebuildPdfWithoutPages).toHaveBeenCalledWith(mockPdfBytes, [2]);
     expect(storeDocument).toHaveBeenCalled();
@@ -148,11 +148,11 @@ describe('processDocument', () => {
   it('should handle empty PDF (no pages)', async () => {
     (splitPdfIntoPages as Mock).mockResolvedValue([]);
     (processPages as Mock).mockResolvedValue([]);
-    (deduplicatePages as Mock).mockReturnValue({
-      unique: [],
+    (generateChunkEmbeddings as Mock).mockResolvedValue([]);
+    (deduplicateByEmbeddings as Mock).mockReturnValue({
+      uniqueIndices: [],
       duplicateIndices: [],
     });
-    (generateChunkEmbeddings as Mock).mockResolvedValue([]);
     (prepareChunks as Mock).mockReturnValue([]);
 
     await processDocument(mockOptions);
@@ -167,11 +167,13 @@ describe('processDocument', () => {
       { pageNumber: 1, content: null, success: false, error: new Error('Failed') },
       { pageNumber: 2, content: 'Page 3 content', success: true },
     ] as PageResult[]);
-    (deduplicatePages as Mock).mockReturnValue({
-      unique: [
-        { pageNumber: 0, content: 'Page 1 content', success: true },
-        { pageNumber: 2, content: 'Page 3 content', success: true },
-      ],
+    // Only 2 successful pages get embeddings
+    (generateChunkEmbeddings as Mock).mockResolvedValue([
+      [0.1, 0.2, 0.3],
+      [0.4, 0.5, 0.6],
+    ]);
+    (deduplicateByEmbeddings as Mock).mockReturnValue({
+      uniqueIndices: [0, 1],
       duplicateIndices: [],
     });
 
@@ -206,17 +208,20 @@ describe('processDocument', () => {
   });
 
   it('should handle deduplication with all pages unique', async () => {
-    (deduplicatePages as Mock).mockReturnValue({
-      unique: [
-        { pageNumber: 0, content: 'Page 1', success: true },
-        { pageNumber: 1, content: 'Page 2', success: true },
-      ],
+    // All 3 pages are unique (different embeddings)
+    (generateChunkEmbeddings as Mock).mockResolvedValue([
+      [0.1, 0.2, 0.3],
+      [0.4, 0.5, 0.6],
+      [0.7, 0.8, 0.9],
+    ]);
+    (deduplicateByEmbeddings as Mock).mockReturnValue({
+      uniqueIndices: [0, 1, 2],
       duplicateIndices: [],
     });
 
     await processDocument(mockOptions);
 
-    // When no duplicates, original bytes should be returned
+    // When no duplicates, rebuild should be called with empty array
     expect(rebuildPdfWithoutPages).toHaveBeenCalledWith(mockPdfBytes, []);
   });
 
