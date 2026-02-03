@@ -43,7 +43,7 @@ export default defineConfig({
     // Unauthenticated tests (API routes, auth flow)
     {
       name: 'unauthenticated',
-      testMatch: /\/(api-routes|auth-flow)\.spec\.ts/,
+      testMatch: /\/(api-routes|auth-flow|document-upload)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         // Clear all auth state to ensure truly unauthenticated requests
@@ -52,10 +52,10 @@ export default defineConfig({
       dependencies: ['global setup'],
     },
 
-    // Authenticated tests (chat, sessions, OpenRouter BYOK) - use stored auth state
+    // Authenticated tests (chat, sessions, OpenRouter BYOK, document upload) - use stored auth state
     {
       name: 'authenticated',
-      testMatch: /\/(chat-rag|session-management|chat-frontend-integration|openrouter-byok)\.spec\.ts/,
+      testMatch: /\/(chat-rag|session-management|chat-frontend-integration|openrouter-byok|document-upload)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         // Use prepared Clerk auth state

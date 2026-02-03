@@ -235,24 +235,24 @@ const SIMILARITY_THRESHOLD = 0.9;  // 90% similar = duplicate
 **Goal:** Comprehensive testing of document pipeline.
 
 ### Subtasks - Unit Tests
-- [ ] 6.1 Verify all unit tests from Tasks 2-4 pass
-- [ ] 6.2 Add edge case tests (empty PDF, single page, 100+ pages)
-- [ ] 6.3 Test checksum duplicate detection
-- [ ] 6.4 Test pipeline error handling and status transitions
+- [x] 6.1 Verify all unit tests from Tasks 2-4 pass
+- [x] 6.2 Add edge case tests (empty PDF, single page, 100+ pages)
+- [x] 6.3 Test checksum duplicate detection
+- [x] 6.4 Test pipeline error handling and status transitions
 
 ### Subtasks - Integration Tests
-- [ ] 6.5 Test upload endpoint with mock file
-- [ ] 6.6 Test duplicate rejection (409 response)
-- [ ] 6.7 Test list endpoint filtering
-- [ ] 6.8 Test delete endpoint cascades (files + chunks)
-- [ ] 6.9 Test file download endpoint
+- [x] 6.5 Test upload endpoint with mock file
+- [x] 6.6 Test duplicate rejection (409 response)
+- [x] 6.7 Test list endpoint filtering
+- [x] 6.8 Test delete endpoint cascades (files + chunks)
+- [x] 6.9 Test file download endpoint
 
 ### Subtasks - E2E Tests
-- [ ] 6.10 E2E test: upload small PDF (authenticated)
-- [ ] 6.11 E2E test: poll status until completed
-- [ ] 6.12 E2E test: download processed PDF
-- [ ] 6.13 E2E test: delete document
-- [ ] 6.14 E2E test: duplicate upload rejected
+- [x] 6.10 E2E test: upload small PDF (authenticated)
+- [x] 6.11 E2E test: poll status until completed
+- [x] 6.12 E2E test: download processed PDF
+- [x] 6.13 E2E test: delete document
+- [x] 6.14 E2E test: duplicate upload rejected
 
 ### Subtasks - Manual Testing
 - [ ] 6.15 Test with real multi-page PDF
