@@ -45,6 +45,12 @@ pnpm test:run     # Run unit tests (Vitest)
 pnpm test:e2e     # Run E2E tests (Playwright)
 ```
 
+**Avoid `| head` / `| tail` piping** - causes CPU spikes. Instead:
+```bash
+cmd > /tmp/out.txt 2>&1; echo "Exit: $?"  # Run and capture
+```
+Then use `Read` tool with `offset`/`limit` to view output. Clean up temp files after.
+
 ## E2E Testing with Clerk
 
 E2E tests use Playwright with `@clerk/testing` for authentication. See `.agent/specs/e2e-testing.md` for full details.
