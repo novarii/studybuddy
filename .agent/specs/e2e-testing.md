@@ -1,7 +1,7 @@
 # E2E Testing with Playwright and Clerk
 
 **Status:** Accepted
-**Last Updated:** 2026-02-02
+**Last Updated:** 2026-02-03
 
 ## Overview
 
@@ -22,10 +22,12 @@ e2e/
 ├── .clerk/                  # Auth state storage (gitignored)
 │   └── user.json           # Stored authenticated session
 └── tests/
-    ├── api-routes.spec.ts      # API endpoint tests
-    ├── auth-flow.spec.ts       # Authentication flow tests
-    ├── chat-rag.spec.ts        # Chat functionality tests
-    ├── session-management.spec.ts  # Session CRUD tests
+    ├── api-routes.spec.ts      # API endpoint tests (unauthenticated)
+    ├── auth-flow.spec.ts       # Authentication flow tests (unauthenticated)
+    ├── openrouter-byok.spec.ts # OpenRouter BYOK tests (authenticated)
+    ├── chat-rag.spec.ts        # Chat functionality tests (authenticated)
+    ├── chat-frontend-integration.spec.ts  # Chat UI tests (authenticated)
+    └── session-management.spec.ts  # Session CRUD tests (authenticated)
 ```
 
 ## Authentication Setup
@@ -70,7 +72,16 @@ Projects are organized by authentication state:
 
 1. **global setup** - Runs first, authenticates user
 2. **unauthenticated** - Tests that don't need auth (API routes, auth flow)
-3. **authenticated** - Tests that use stored auth state (chat, sessions)
+3. **authenticated** - Tests that use stored auth state (chat, sessions, OpenRouter BYOK)
+
+#### Why Authenticated vs Unauthenticated Matters
+
+Clerk middleware (`proxy.ts`) intercepts all requests to protected routes. For unauthenticated requests, Clerk returns an HTML sign-in page (200 status) **before** the route handler executes. This means:
+
+- **Unauthenticated tests** can only verify routes exist (not 404) and Clerk protects them
+- **Authenticated tests** can test actual route behavior, JSON responses, and business logic
+
+For API routes that need meaningful testing (like OpenRouter BYOK), use the authenticated project so requests reach the actual route handlers.
 
 ## Test Categories
 
@@ -88,7 +99,17 @@ Tests that require a logged-in user:
 - Empty state displays correctly
 - Theme toggle works
 
-### 4. Tests Requiring Backend Data (skipped)
+### 4. OpenRouter BYOK Tests (authenticated)
+Tests for the Bring Your Own Key OAuth flow:
+- **Status endpoint** - Returns `{ connected: false, usingSharedKey: true }` for users without a connected key
+- **Connect endpoint** - Redirects to OpenRouter OAuth with PKCE parameters (code_challenge, S256 method)
+- **Disconnect endpoint** - Returns `{ success: true }` (idempotent)
+- **Callback endpoint** - Handles error cases (no code, missing verifier)
+- **PKCE validation** - Verifies secure cookie attributes and unique code verifiers
+
+Note: Full OAuth flow (actually connecting a key) requires manual testing against real OpenRouter.
+
+### 5. Tests Requiring Backend Data (skipped)
 These tests are skipped until the test user has courses:
 - Chat input visibility
 - Session list in sidebar
