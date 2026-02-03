@@ -7,6 +7,8 @@ import {
   real,
   index,
   check,
+  numeric,
+  boolean,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -88,3 +90,25 @@ export type NewChatMessage = typeof chatMessages.$inferInsert;
 
 export type MessageSource = typeof messageSources.$inferSelect;
 export type NewMessageSource = typeof messageSources.$inferInsert;
+
+export const userApiKeys = aiSchema.table(
+  'user_api_keys',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull().unique(),
+    openrouterKeyEncrypted: text('openrouter_key_encrypted').notNull(),
+    openrouterKeyHash: text('openrouter_key_hash').notNull(),
+    keyLabel: text('key_label'),
+    creditsRemaining: numeric('credits_remaining'),
+    creditsLimit: numeric('credits_limit'),
+    isFreeTier: boolean('is_free_tier').default(true),
+    connectedAt: timestamp('connected_at', { withTimezone: true }).defaultNow(),
+    lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [index('idx_user_api_keys_user_id').on(table.userId)]
+);
+
+export type UserApiKey = typeof userApiKeys.$inferSelect;
+export type NewUserApiKey = typeof userApiKeys.$inferInsert;
