@@ -255,7 +255,7 @@ const SIMILARITY_THRESHOLD = 0.9;  // 90% similar = duplicate
 - [x] 6.14 E2E test: duplicate upload rejected
 
 ### Subtasks - Manual Testing
-- [ ] 6.15 Test with real multi-page PDF
+- [x] 6.15 Test with real multi-page PDF
 - [ ] 6.16 Verify duplicates removed from lean PDF
 - [ ] 6.17 Verify chunks searchable via chat RAG
 - [ ] 6.18 Test with user's BYOK key
