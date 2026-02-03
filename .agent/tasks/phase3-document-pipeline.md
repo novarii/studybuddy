@@ -109,15 +109,15 @@ DOCUMENT_STORAGE_PATH=./uploads/documents
 **Goal:** Implement parallel page extraction using Gemini via OpenRouter.
 
 ### Subtasks
-- [ ] 3.1 Create `lib/documents/gemini-extractor.ts`
-- [ ] 3.2 Implement `extractPageContent()` - single page extraction
-- [ ] 3.3 Define extraction prompt placeholder (user will finalize)
-- [ ] 3.4 Create `lib/documents/page-processor.ts`
-- [ ] 3.5 Implement `processPages()` - parallel processing with p-limit (concurrency: 5)
-- [ ] 3.6 Implement retry logic (1 retry on failure)
-- [ ] 3.7 Implement skip + log on final failure
-- [ ] 3.8 Add BYOK integration (get user's API key)
-- [ ] 3.9 Write unit tests with mocked Gemini responses
+- [x] 3.1 Create `lib/documents/gemini-extractor.ts`
+- [x] 3.2 Implement `extractPageContent()` - single page extraction
+- [x] 3.3 Define extraction prompt placeholder (user will finalize)
+- [x] 3.4 Create `lib/documents/page-processor.ts`
+- [x] 3.5 Implement `processPages()` - parallel processing with p-limit (concurrency: 5)
+- [x] 3.6 Implement retry logic (1 retry on failure)
+- [x] 3.7 Implement skip + log on final failure
+- [x] 3.8 Add BYOK integration (get user's API key)
+- [x] 3.9 Write unit tests with mocked Gemini responses
 
 ### Implementation Notes
 ```typescript
