@@ -5,7 +5,7 @@ import { storeDocument } from '@/lib/storage/documents';
 import { splitPdfIntoPages } from './pdf-splitter';
 import { rebuildPdfWithoutPages } from './pdf-rebuilder';
 import { processPages } from './page-processor';
-import { deduplicateByEmbeddings } from './deduplication';
+import { deduplicatePages, deduplicateByEmbeddings } from './deduplication';
 import {
   generateChunkEmbeddings,
   insertChunks,
@@ -64,11 +64,12 @@ export async function updateDocumentStatus(
  * 1. Get user's API key (BYOK or fallback)
  * 2. Split PDF into single-page PDFs
  * 3. Process pages in parallel with Gemini extraction
- * 4. Generate embeddings for all successful pages
- * 5. Deduplicate using cosine similarity on embeddings
- * 6. Insert only unique chunks into vector database
- * 7. Rebuild lean PDF without duplicates
- * 8. Update document status to completed
+ * 4. Phase 1 deduplication: Jaccard on text (saves embedding cost)
+ * 5. Generate embeddings for Jaccard-unique pages only
+ * 6. Phase 2 deduplication: Cosine similarity on embeddings
+ * 7. Insert only unique chunks into vector database
+ * 8. Rebuild lean PDF without duplicates
+ * 9. Update document status to completed
  *
  * On failure, updates document status to 'failed' with error message.
  *
@@ -97,26 +98,43 @@ export async function processDocument(
       .filter((r) => !r.success)
       .map((r) => r.pageNumber);
 
-    // Filter to only successful pages for embedding
-    const successfulPages = pageResults.filter((r) => r.success && r.content);
+    // 4. Phase 1: Jaccard deduplication on extracted text
+    // This catches obvious text duplicates BEFORE embedding (saves API cost)
+    const { unique: jaccardUnique, duplicateIndices: jaccardDuplicates } =
+      deduplicatePages(pageResults);
 
-    // 4. Generate embeddings for ALL successful pages
-    const allEmbeddings = await generateChunkEmbeddings(successfulPages, apiKey);
-
-    // 5. Deduplicate using cosine similarity on embeddings
-    const { uniqueIndices, duplicateIndices: dedupedIndices } =
-      deduplicateByEmbeddings(allEmbeddings);
-
-    // Map back to original page numbers for PDF rebuilding
-    const duplicatePageNumbers = dedupedIndices.map(
-      (i) => successfulPages[i].pageNumber
+    console.log(
+      `[DocumentPipeline] Phase 1 (Jaccard): ${jaccardDuplicates.length} text duplicates removed`
     );
 
-    // Filter to only unique pages and embeddings
-    const uniquePages = uniqueIndices.map((i) => successfulPages[i]);
-    const uniqueEmbeddings = uniqueIndices.map((i) => allEmbeddings[i]);
+    // 5. Generate embeddings only for Jaccard-unique pages
+    const embeddings = await generateChunkEmbeddings(jaccardUnique, apiKey);
 
-    // 6. Prepare and insert only unique chunks into vector database
+    // 6. Phase 2: Cosine similarity deduplication on embeddings
+    // This catches semantic duplicates that Jaccard missed
+    const { uniqueIndices, duplicateIndices: cosineDuplicates } =
+      deduplicateByEmbeddings(embeddings);
+
+    console.log(
+      `[DocumentPipeline] Phase 2 (Cosine): ${cosineDuplicates.length} semantic duplicates removed`
+    );
+
+    // Map cosine duplicates back to original page numbers
+    const cosineDuplicatePageNumbers = cosineDuplicates.map(
+      (i) => jaccardUnique[i].pageNumber
+    );
+
+    // Combine all duplicate page numbers for PDF rebuilding
+    const allDuplicatePageNumbers = [
+      ...jaccardDuplicates,
+      ...cosineDuplicatePageNumbers,
+    ];
+
+    // Filter to only final unique pages and embeddings
+    const uniquePages = uniqueIndices.map((i) => jaccardUnique[i]);
+    const uniqueEmbeddings = uniqueIndices.map((i) => embeddings[i]);
+
+    // 7. Prepare and insert only unique chunks into vector database
     const chunks = prepareChunks(uniquePages, uniqueEmbeddings);
     await insertChunks(chunks, {
       documentId,
@@ -125,10 +143,10 @@ export async function processDocument(
       filename,
     });
 
-    // 7. Rebuild lean PDF without duplicate pages
+    // 8. Rebuild lean PDF without duplicate pages
     const leanPdfBytes = await rebuildPdfWithoutPages(
       pdfBytes,
-      duplicatePageNumbers
+      allDuplicatePageNumbers
     );
 
     // Store processed PDF
@@ -139,7 +157,7 @@ export async function processDocument(
       'processed'
     );
 
-    // 8. Update document status to completed
+    // 9. Update document status to completed
     await updateDocumentStatus(documentId, {
       status: 'completed',
       uniquePageCount: uniquePages.length,
@@ -151,7 +169,8 @@ export async function processDocument(
     console.log(
       `[DocumentPipeline] Document ${documentId} processed successfully. ` +
         `Pages: ${pages.length}, Unique: ${uniquePages.length}, ` +
-        `Duplicates removed: ${duplicatePageNumbers.length}, Failed: ${failedPages.length}`
+        `Duplicates: ${allDuplicatePageNumbers.length} (Jaccard: ${jaccardDuplicates.length}, Cosine: ${cosineDuplicates.length}), ` +
+        `Failed: ${failedPages.length}`
     );
   } catch (error) {
     console.error(`[DocumentPipeline] Document ${documentId} processing failed:`, error);
