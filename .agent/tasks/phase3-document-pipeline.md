@@ -20,16 +20,16 @@
 **Goal:** Install dependencies, add database schema, create storage utilities.
 
 ### Subtasks - Dependencies
-- [ ] 1.1 Install `pdf-lib` for PDF manipulation
-- [ ] 1.2 Install `p-limit` for concurrency control
-- [ ] 1.3 Verify `ai` package version supports `mediaType` (v5+)
+- [x] 1.1 Install `pdf-lib` for PDF manipulation
+- [x] 1.2 Install `p-limit` for concurrency control
+- [x] 1.3 Verify `ai` package version supports `mediaType` (v5+)
 
 ### Subtasks - Database Schema
-- [ ] 1.4 Add `documents` table to `lib/db/schema.ts`
-- [ ] 1.5 Generate migration with `drizzle-kit generate`
+- [x] 1.4 Add `documents` table to `lib/db/schema.ts`
+- [x] 1.5 Generate migration with `drizzle-kit generate`
 - [ ] 1.6 Run migration against dev database
-- [ ] 1.7 Verify table created with checksum unique constraint
-- [ ] 1.8 Export `documents` from `lib/db/index.ts`
+- [x] 1.7 Verify table created with checksum unique constraint
+- [x] 1.8 Export `documents` from `lib/db/index.ts`
 
 ### Schema Definition
 ```typescript
@@ -52,11 +52,11 @@ export const documents = pgTable('documents', {
 ```
 
 ### Subtasks - Storage
-- [ ] 1.9 Create `lib/storage/documents.ts` with storage utilities
-- [ ] 1.10 Implement `storeDocument()` - save PDF to disk
-- [ ] 1.11 Implement `getDocumentPath()` - retrieve file path
-- [ ] 1.12 Implement `deleteDocument()` - remove files
-- [ ] 1.13 Add `DOCUMENT_STORAGE_PATH` to environment config
+- [x] 1.9 Create `lib/storage/documents.ts` with storage utilities
+- [x] 1.10 Implement `storeDocument()` - save PDF to disk
+- [x] 1.11 Implement `getDocumentPath()` - retrieve file path
+- [x] 1.12 Implement `deleteDocument()` - remove files
+- [x] 1.13 Add `DOCUMENT_STORAGE_PATH` to environment config
 
 ### Environment Variables
 ```bash
