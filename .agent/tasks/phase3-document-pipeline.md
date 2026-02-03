@@ -77,15 +77,15 @@ DOCUMENT_STORAGE_PATH=./uploads/documents
 **Goal:** Implement PDF splitting and lean PDF rebuilding with pdf-lib.
 
 ### Subtasks
-- [ ] 2.1 Create `lib/documents/pdf-splitter.ts`
-- [ ] 2.2 Implement `splitPdfIntoPages()` - split PDF into single-page Uint8Arrays
-- [ ] 2.3 Create `lib/documents/pdf-rebuilder.ts`
-- [ ] 2.4 Implement `rebuildPdfWithoutPages()` - create lean PDF excluding duplicate pages
-- [ ] 2.5 Create `lib/documents/checksum.ts`
-- [ ] 2.6 Implement `computeChecksum()` - SHA-256 hash of PDF bytes
-- [ ] 2.7 Write unit tests for PDF splitting (use test PDF fixture)
-- [ ] 2.8 Write unit tests for PDF rebuilding
-- [ ] 2.9 Write unit tests for checksum computation
+- [x] 2.1 Create `lib/documents/pdf-splitter.ts`
+- [x] 2.2 Implement `splitPdfIntoPages()` - split PDF into single-page Uint8Arrays
+- [x] 2.3 Create `lib/documents/pdf-rebuilder.ts`
+- [x] 2.4 Implement `rebuildPdfWithoutPages()` - create lean PDF excluding duplicate pages
+- [x] 2.5 Create `lib/documents/checksum.ts`
+- [x] 2.6 Implement `computeChecksum()` - SHA-256 hash of PDF bytes
+- [x] 2.7 Write unit tests for PDF splitting (use test PDF fixture)
+- [x] 2.8 Write unit tests for PDF rebuilding
+- [x] 2.9 Write unit tests for checksum computation
 
 ### Implementation Notes
 - All operations in-memory (no temp files)
