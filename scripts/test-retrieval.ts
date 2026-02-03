@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Pool } from 'pg';
 import { embed } from '../lib/ai/embeddings';
-import { searchKnowledge, formatRetrievalContext } from '../lib/ai/retrieval';
+import { searchKnowledge } from '../lib/ai/retrieval';
 
 const TEST_USER_ID = 'test-user-123';
 const TEST_COURSE_ID = '00000000-0000-0000-0000-000000000001';
@@ -76,7 +76,7 @@ async function testRetrieval() {
   console.log('\nContext for LLM:');
   console.log(result.context);
   console.log('\nSources for frontend:');
-  result.sources.forEach((s, i) => {
+  result.sources.forEach((s) => {
     console.log(`  [${s.chunk_number}] ${s.source_type}: ${s.content_preview.slice(0, 50)}...`);
   });
 

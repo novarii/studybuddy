@@ -24,6 +24,7 @@ A **spec** is an atomic source of truth document. It can contain:
 | Spec | Description | Key Topics |
 |------|-------------|------------|
 | [migration/00-overview.md](./migration/00-overview.md) | Backend migration plan | Python → Next.js/TypeScript, AI SDK, OpenRouter BYOK |
+| [migration/02-openrouter-byok.md](./migration/02-openrouter-byok.md) | Phase 2: BYOK implementation | OAuth PKCE, encrypted key storage, user API keys |
 | [architecture.md](./architecture.md) | Frontend architecture | Next.js App Router, 3-column layout, state management |
 | [tech-stack.md](./tech-stack.md) | Technology choices | Next.js 16, React 19, Tailwind v4, Clerk |
 | [ui-component-library.md](./ui-component-library.md) | UI component system | shadcn/ui, Radix primitives, cva variants |
@@ -35,6 +36,7 @@ A **spec** is an atomic source of truth document. It can contain:
 | [layout-system.md](./layout-system.md) | 3-column layout | Sidebar, MainContent, RightPanel, resizing |
 | [markdown-rendering.md](./markdown-rendering.md) | AI markdown rendering | Streamdown, citations, code highlighting, streaming |
 | [message-sources-persistence.md](./message-sources-persistence.md) | RAG sources persistence | Load sources with messages, historical citations |
+| [e2e-testing.md](./e2e-testing.md) | E2E testing setup | Playwright, Clerk auth, test patterns |
 
 ---
 

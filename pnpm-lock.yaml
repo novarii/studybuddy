@@ -10,10 +10,13 @@ importers:
     dependencies:
       '@ai-sdk/react':
         specifier: ^3.0.69
-        version: 3.0.69(react@19.2.1)(zod@4.2.1)
+        version: 3.0.69(react@19.2.1)(zod@4.3.6)
       '@clerk/nextjs':
         specifier: ^6.36.4
-        version: 6.36.4(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+        version: 6.36.4(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@openrouter/ai-sdk-provider':
+        specifier: ^2.1.1
+        version: 2.1.1(ai@6.0.67(zod@4.3.6))(zod@4.3.6)
       '@radix-ui/react-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -37,7 +40,7 @@ importers:
         version: 0.5.19(tailwindcss@4.1.18)
       ai:
         specifier: ^6.0.67
-        version: 6.0.67(zod@4.2.1)
+        version: 6.0.67(zod@4.3.6)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -58,7 +61,7 @@ importers:
         version: 0.562.0(react@19.2.1)
       next:
         specifier: 16.0.10
-        version: 16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+        version: 16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -83,7 +86,16 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.1.18)
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
+      '@clerk/testing':
+        specifier: ^1.13.33
+        version: 1.13.33(@playwright/test@1.58.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@playwright/test':
+        specifier: ^1.58.1
+        version: 1.58.1
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.18
@@ -327,6 +339,10 @@ packages:
     resolution: {integrity: sha512-rd0hWrU7VES/CEYwnyaXDDHzDXYIaSzI5G03KLUfxLyOQSChU0ZUeViDYyXEsjZgAQqiUP1TFykh9JU2YlaNYg==}
     engines: {node: '>=18.17.0'}
 
+  '@clerk/backend@2.29.7':
+    resolution: {integrity: sha512-OSfFQ85L0FV2wSzqlr0hRvluIu3Z5ClgLiBE6Qx7XjSGyJoqEvP5OP4fl5Nt5icgGvH0EwA1dljPGyQpaqbQEw==}
+    engines: {node: '>=18.17.0'}
+
   '@clerk/clerk-react@5.59.1':
     resolution: {integrity: sha512-qJMRbOy0Y+0ocGxlvIYI2yQkXcLu6DIGttZ/QM8MFMqoL/K9png4rWNN/zci676ZKZZTD3I+HGD0P11MyZk7cA==}
     engines: {node: '>=18.17.0'}
@@ -353,6 +369,34 @@ packages:
         optional: true
       react-dom:
         optional: true
+
+  '@clerk/shared@3.44.0':
+    resolution: {integrity: sha512-kH+chNeZwqml3IDpWLgebWECfOZifyUQO4OISd/96w1EuCY1Bzw6cBq/ZbpsoO8jyG8/6bGr/MGXLhDzTrpPfA==}
+    engines: {node: '>=18.17.0'}
+    peerDependencies:
+      react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
+      react-dom: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
+  '@clerk/testing@1.13.33':
+    resolution: {integrity: sha512-94xhYnamV/UH7BDKVmzkLcsrOvjALiWognTgfaHvU1nxNaUHStTjDEkpnpiFXEFvrQJWCpn7o5DfCisZkJjD9A==}
+    engines: {node: '>=18.17.0'}
+    peerDependencies:
+      '@playwright/test': ^1
+      cypress: ^13 || ^14
+    peerDependenciesMeta:
+      '@playwright/test':
+        optional: true
+      cypress:
+        optional: true
+
+  '@clerk/types@4.101.14':
+    resolution: {integrity: sha512-jl7DywmeaZx1IntgEXcjDZq2uyk+X/1yAZOjxOboeGTS0rNTiQNhv7xK8tFVjexsUAFrYlwC1AxhFuJiMDQjow==}
+    engines: {node: '>=18.17.0'}
 
   '@clerk/types@4.101.8':
     resolution: {integrity: sha512-hJobP3FvvuMS5EoaQZmupmLDf5bxOv9ZDXiJ2heSoqUWZaQxLFOfzaOXTKNV9oF5yJwvYijh1cW0LxXZP2O9aA==}
@@ -1157,9 +1201,21 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
+  '@openrouter/ai-sdk-provider@2.1.1':
+    resolution: {integrity: sha512-UypPbVnSExxmG/4Zg0usRiit3auvQVrjUXSyEhm0sZ9GQnW/d8p/bKgCk2neh1W5YyRSo7PNQvCrAEBHZnqQkQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      ai: ^6.0.0
+      zod: ^3.25.0 || ^4.0.0
+
   '@opentelemetry/api@1.9.0':
     resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
     engines: {node: '>=8.0.0'}
+
+  '@playwright/test@1.58.1':
+    resolution: {integrity: sha512-6LdVIUERWxQMmUSSQi0I53GgCBYgM2RpGngCPY7hSeju+VrKjq3lvs7HpJoPbDiY5QM5EYRtRX5fvrinnMAz3w==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@radix-ui/number@1.1.1':
     resolution: {integrity: sha512-MkKCwxlXTgz6CFoJx3pCwn07GKp36+aZyu/u2Ln2VrA5DcdyCZkASEDBTd8x5whTQQL5CiYf4prXKLcgQdv29g==}
@@ -2339,6 +2395,10 @@ packages:
   dom-accessibility-api@0.6.3:
     resolution: {integrity: sha512-7ZgogeTnjuHbo+ct10G9Ffp0mif17idi0IyWNVA/wcwcm7NPOD/WEHVP3n7n3MhXqxoIYm8d6MuZohYWIZ4T3w==}
 
+  dotenv@17.2.2:
+    resolution: {integrity: sha512-Sf2LSQP+bOlhKWWyhFsn0UsfdK/kCWRv1iuA2gXAwt3dyNabr6QSj00I2V10pidqz69soatm9ZwZvpQMTIOd5Q==}
+    engines: {node: '>=12'}
+
   dotenv@17.2.3:
     resolution: {integrity: sha512-JVUnt+DUIzu87TABbhPmNfVdBDt18BLOWjMUFJMSi/Qqg7NTYtabbvSNJGOJ7afbRuv9D/lngizHtP7QyLQ+9w==}
     engines: {node: '>=12'}
@@ -2707,6 +2767,11 @@ packages:
   for-each@0.3.5:
     resolution: {integrity: sha512-dKx12eRCVIzqCxFGplyFKJMPvLEWgmNtUrpTiJIR5u97zEhRG8ySrtboPHZXx7daLxQVrl643cTzbab2tkQjxg==}
     engines: {node: '>= 0.4'}
+
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
 
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
@@ -3545,6 +3610,16 @@ packages:
     resolution: {integrity: sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==}
     engines: {node: '>=12'}
 
+  playwright-core@1.58.1:
+    resolution: {integrity: sha512-bcWzOaTxcW+VOOGBCQgnaKToLJ65d6AqfLVKEWvexyS3AS6rbXl+xdpYRMGSRBClPvyj44njOWoxjNdL/H9UNg==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.58.1:
+    resolution: {integrity: sha512-+2uTZHxSCcxjvGc5C891LrS1/NlxglGxzrC4seZiVjcYVQfUa87wBL6rTDqzGjuoWNjnBzRqKmF6zRYGMvQUaQ==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   possible-typed-array-names@1.1.0:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
     engines: {node: '>= 0.4'}
@@ -4258,8 +4333,8 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
-  zod@4.2.1:
-    resolution: {integrity: sha512-0wZ1IRqGGhMP76gLqz8EyfBXKk0J2qo2+H3fi4mcUP/KtTocoX08nmIAHl1Z2kJIZbZee8KOpBCSNPRgauucjw==}
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -4270,28 +4345,28 @@ snapshots:
 
   '@adobe/css-tools@4.4.4': {}
 
-  '@ai-sdk/gateway@3.0.32(zod@4.2.1)':
+  '@ai-sdk/gateway@3.0.32(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.7
-      '@ai-sdk/provider-utils': 4.0.13(zod@4.2.1)
+      '@ai-sdk/provider-utils': 4.0.13(zod@4.3.6)
       '@vercel/oidc': 3.1.0
-      zod: 4.2.1
+      zod: 4.3.6
 
-  '@ai-sdk/provider-utils@4.0.13(zod@4.2.1)':
+  '@ai-sdk/provider-utils@4.0.13(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.7
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.0.6
-      zod: 4.2.1
+      zod: 4.3.6
 
   '@ai-sdk/provider@3.0.7':
     dependencies:
       json-schema: 0.4.0
 
-  '@ai-sdk/react@3.0.69(react@19.2.1)(zod@4.2.1)':
+  '@ai-sdk/react@3.0.69(react@19.2.1)(zod@4.3.6)':
     dependencies:
-      '@ai-sdk/provider-utils': 4.0.13(zod@4.2.1)
-      ai: 6.0.67(zod@4.2.1)
+      '@ai-sdk/provider-utils': 4.0.13(zod@4.3.6)
+      ai: 6.0.67(zod@4.3.6)
       react: 19.2.1
       swr: 2.4.0(react@19.2.1)
       throttleit: 2.1.0
@@ -4535,6 +4610,16 @@ snapshots:
       - react
       - react-dom
 
+  '@clerk/backend@2.29.7(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
+    dependencies:
+      '@clerk/shared': 3.44.0(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@clerk/types': 4.101.14(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      standardwebhooks: 1.0.0
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - react
+      - react-dom
+
   '@clerk/clerk-react@5.59.1(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
     dependencies:
       '@clerk/shared': 3.41.0(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -4542,13 +4627,13 @@ snapshots:
       react-dom: 19.2.1(react@19.2.1)
       tslib: 2.8.1
 
-  '@clerk/nextjs@6.36.4(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
+  '@clerk/nextjs@6.36.4(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
     dependencies:
       '@clerk/backend': 2.28.0(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       '@clerk/clerk-react': 5.59.1(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       '@clerk/shared': 3.41.0(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       '@clerk/types': 4.101.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
-      next: 16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      next: 16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       react: 19.2.1
       react-dom: 19.2.1(react@19.2.1)
       server-only: 0.0.1
@@ -4565,6 +4650,37 @@ snapshots:
     optionalDependencies:
       react: 19.2.1
       react-dom: 19.2.1(react@19.2.1)
+
+  '@clerk/shared@3.44.0(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
+    dependencies:
+      csstype: 3.1.3
+      dequal: 2.0.3
+      glob-to-regexp: 0.4.1
+      js-cookie: 3.0.5
+      std-env: 3.10.0
+      swr: 2.3.4(react@19.2.1)
+    optionalDependencies:
+      react: 19.2.1
+      react-dom: 19.2.1(react@19.2.1)
+
+  '@clerk/testing@1.13.33(@playwright/test@1.58.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
+    dependencies:
+      '@clerk/backend': 2.29.7(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@clerk/shared': 3.44.0(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@clerk/types': 4.101.14(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      dotenv: 17.2.2
+    optionalDependencies:
+      '@playwright/test': 1.58.1
+    transitivePeerDependencies:
+      - react
+      - react-dom
+
+  '@clerk/types@4.101.14(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
+    dependencies:
+      '@clerk/shared': 3.44.0(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+    transitivePeerDependencies:
+      - react
+      - react-dom
 
   '@clerk/types@4.101.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
     dependencies:
@@ -5088,7 +5204,16 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
+  '@openrouter/ai-sdk-provider@2.1.1(ai@6.0.67(zod@4.3.6))(zod@4.3.6)':
+    dependencies:
+      ai: 6.0.67(zod@4.3.6)
+      zod: 4.3.6
+
   '@opentelemetry/api@1.9.0': {}
+
+  '@playwright/test@1.58.1':
+    dependencies:
+      playwright: 1.58.1
 
   '@radix-ui/number@1.1.1': {}
 
@@ -5903,13 +6028,13 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  ai@6.0.67(zod@4.2.1):
+  ai@6.0.67(zod@4.3.6):
     dependencies:
-      '@ai-sdk/gateway': 3.0.32(zod@4.2.1)
+      '@ai-sdk/gateway': 3.0.32(zod@4.3.6)
       '@ai-sdk/provider': 3.0.7
-      '@ai-sdk/provider-utils': 4.0.13(zod@4.2.1)
+      '@ai-sdk/provider-utils': 4.0.13(zod@4.3.6)
       '@opentelemetry/api': 1.9.0
-      zod: 4.2.1
+      zod: 4.3.6
 
   ajv@6.12.6:
     dependencies:
@@ -6224,6 +6349,8 @@ snapshots:
   dom-accessibility-api@0.5.16: {}
 
   dom-accessibility-api@0.6.3: {}
+
+  dotenv@17.2.2: {}
 
   dotenv@17.2.3: {}
 
@@ -6567,8 +6694,8 @@ snapshots:
       '@babel/parser': 7.28.5
       eslint: 9.39.2(jiti@2.6.1)
       hermes-parser: 0.25.1
-      zod: 4.2.1
-      zod-validation-error: 4.0.2(zod@4.2.1)
+      zod: 4.3.6
+      zod-validation-error: 4.0.2(zod@4.3.6)
     transitivePeerDependencies:
       - supports-color
 
@@ -6721,6 +6848,9 @@ snapshots:
   for-each@0.3.5:
     dependencies:
       is-callable: 1.2.7
+
+  fsevents@2.3.2:
+    optional: true
 
   fsevents@2.3.3:
     optional: true
@@ -7681,7 +7811,7 @@ snapshots:
       react: 19.2.1
       react-dom: 19.2.1(react@19.2.1)
 
-  next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
+  next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
     dependencies:
       '@next/env': 16.0.10
       '@swc/helpers': 0.5.15
@@ -7700,6 +7830,7 @@ snapshots:
       '@next/swc-win32-arm64-msvc': 16.0.10
       '@next/swc-win32-x64-msvc': 16.0.10
       '@opentelemetry/api': 1.9.0
+      '@playwright/test': 1.58.1
       sharp: 0.34.5
     transitivePeerDependencies:
       - '@babel/core'
@@ -7844,6 +7975,14 @@ snapshots:
   picomatch@2.3.1: {}
 
   picomatch@4.0.3: {}
+
+  playwright-core@1.58.1: {}
+
+  playwright@1.58.1:
+    dependencies:
+      playwright-core: 1.58.1
+    optionalDependencies:
+      fsevents: 2.3.2
 
   possible-typed-array-names@1.1.0: {}
 
@@ -8729,10 +8868,10 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod-validation-error@4.0.2(zod@4.2.1):
+  zod-validation-error@4.0.2(zod@4.3.6):
     dependencies:
-      zod: 4.2.1
+      zod: 4.3.6
 
-  zod@4.2.1: {}
+  zod@4.3.6: {}
 
   zwitch@2.0.4: {}

@@ -4,6 +4,7 @@ import {
   chatSessions,
   chatMessages,
   messageSources,
+  userApiKeys,
   aiSchema,
 } from '@/lib/db/schema';
 
@@ -67,6 +68,36 @@ describe('Database Schema', () => {
       expect(columns).toContain('lectureId');
       expect(columns).toContain('startSeconds');
       expect(columns).toContain('endSeconds');
+    });
+  });
+
+  describe('userApiKeys table', () => {
+    it('should have correct table name', () => {
+      expect(getTableName(userApiKeys)).toBe('user_api_keys');
+    });
+
+    it('should have required columns', () => {
+      const columns = Object.keys(userApiKeys);
+      expect(columns).toContain('id');
+      expect(columns).toContain('userId');
+      expect(columns).toContain('openrouterKeyEncrypted');
+      expect(columns).toContain('openrouterKeyHash');
+    });
+
+    it('should have optional metadata columns', () => {
+      const columns = Object.keys(userApiKeys);
+      expect(columns).toContain('keyLabel');
+      expect(columns).toContain('creditsRemaining');
+      expect(columns).toContain('creditsLimit');
+      expect(columns).toContain('isFreeTier');
+    });
+
+    it('should have timestamp columns', () => {
+      const columns = Object.keys(userApiKeys);
+      expect(columns).toContain('connectedAt');
+      expect(columns).toContain('lastVerifiedAt');
+      expect(columns).toContain('createdAt');
+      expect(columns).toContain('updatedAt');
     });
   });
 });

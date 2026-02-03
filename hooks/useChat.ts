@@ -7,8 +7,6 @@ import { useAuth } from "@clerk/nextjs";
 import { api } from "@/lib/api";
 import type { ChatMessage, RAGSource } from "@/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-
 export const useChat = (
   courseId: string | undefined,
   sessionId: string | undefined,
@@ -90,21 +88,14 @@ export const useChat = (
 
   // Memoize transport - uses ref for sessionId to always get current value
   const transport = useMemo(() => new DefaultChatTransport({
-    api: `${API_BASE}/agent/chat`,
-    // Transform the request to match backend's expected format
+    api: "/api/chat",
+    // Transform the request to match the local API route's expected format
     prepareSendMessagesRequest: ({ messages }) => {
-      // Get the last user message text
-      const lastMessage = messages[messages.length - 1];
-      const messageText = lastMessage?.parts
-        ?.filter((part): part is { type: "text"; text: string } => part.type === "text")
-        .map((part) => part.text)
-        .join("") || "";
-
       return {
         body: {
-          message: messageText,
-          course_id: courseId,
-          session_id: sessionIdRef.current,
+          messages,
+          sessionId: sessionIdRef.current,
+          courseId,
         },
       };
     },
@@ -233,7 +224,8 @@ export const useChat = (
     setStreamingSources([]);
   }, [setMessages]);
 
-  const deleteCourseHistory = useCallback((_deletedCourseId: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const deleteCourseHistory = useCallback((deletedCourseId: string) => {
     // Note: AI SDK v5 manages its own history per id
     // This is now handled by changing the id prop
   }, []);

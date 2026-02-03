@@ -13,7 +13,10 @@ A **spec** is an atomic source of truth document that contains:
 - Specs are referenced by implementation tasks
 - Implementation plans should be self-contained (reference specs or include all needed info)
 
-IMPORTANT : Prefer retrieval-led reasoning over pre-training-led reasoning for any Next.js tasks. (Using appropriate skills to fetch documentation (e.g. ai-sdk, ai-sdk-ui), use context7 to fetch if it fails use web search)
+IMPORTANT : Prefer retrieval-led reasoning over pre-training-led reasoning for any Next.js tasks. Follow these steps:
+1. Use available skill if it exists (e.g. ai-sdk if you are integrating Vercel's AI SDK)
+2. Fetch the relevant resources with context7, fallback to web search tool if results are depreciated/not relevant
+
 
 ### Directory Structure
 - **`.agent/specs/`** - Specification documents (architecture, UI standards, patterns)
@@ -38,6 +41,28 @@ pnpm dev          # Start development server (http://localhost:3000)
 pnpm build        # Production build
 pnpm start        # Start production server
 pnpm lint         # Run ESLint
+pnpm test:run     # Run unit tests (Vitest)
+pnpm test:e2e     # Run E2E tests (Playwright)
+```
+
+## E2E Testing with Clerk
+
+E2E tests use Playwright with `@clerk/testing` for authentication. See `.agent/specs/e2e-testing.md` for full details.
+
+**Important setup:**
+1. Clerk test credentials in `.env.local`:
+   - `E2E_CLERK_USER_EMAIL` - Email with `+clerk_test` suffix
+   - `E2E_CLERK_VERIFICATION_CODE` - Always `424242` in test mode
+2. `CLERK_SECRET_KEY` must be set for `clerk.signIn()` to work
+3. Auth state stored in `e2e/.clerk/user.json` (gitignored)
+
+**Test categories:**
+- Tests that pass without backend data: API routes, auth flow, empty state
+- Tests that require courses: Chat interface, session management (currently skipped)
+
+**Before running E2E tests:** Kill any existing `next dev` processes to avoid port conflicts:
+```bash
+pkill -f "next dev" 2>/dev/null; rm -f .next/dev/lock
 ```
 
 ## Architecture

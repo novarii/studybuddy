@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Legacy Python backend (reference only)
     "_legacy/**",
+    // Claude Code skill templates (external)
+    ".agents/**",
+    ".claude/**",
   ]),
 ]);
 

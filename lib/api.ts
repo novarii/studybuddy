@@ -1,4 +1,4 @@
-import type { Course, Document, Lecture, ChatSession, StoredMessage } from "@/types";
+import type { Course, Document, Lecture, ChatSession, StoredMessage, RAGSource } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -32,7 +32,46 @@ async function fetchWithAuth<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Request failed" }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
+    throw new Error(error.detail || error.error || `HTTP ${response.status}`);
+  }
+
+  // Handle 204 No Content
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetch helper for local API routes (no API_BASE prefix)
+ */
+async function fetchLocal<T>(
+  endpoint: string,
+  options: FetchOptions = {}
+): Promise<T> {
+  const { token, ...fetchOptions } = options;
+
+  const headers: HeadersInit = {
+    ...(fetchOptions.headers || {}),
+  };
+
+  if (token) {
+    (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+  }
+
+  if (!(fetchOptions.body instanceof FormData)) {
+    (headers as Record<string, string>)["Content-Type"] = "application/json";
+  }
+
+  const response = await fetch(endpoint, {
+    ...fetchOptions,
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Request failed" }));
+    throw new Error(error.detail || error.error || `HTTP ${response.status}`);
   }
 
   // Handle 204 No Content
@@ -177,48 +216,119 @@ export const api = {
 
   sessions: {
     /**
-     * List chat sessions for a course
+     * List chat sessions for a course (uses local API route)
      */
-    list: (token: string, courseId?: string) =>
-      fetchWithAuth<{ sessions: ChatSession[]; total: number }>(
-        `/sessions${courseId ? `?course_id=${courseId}` : ""}`,
+    list: async (token: string, courseId?: string): Promise<{ sessions: ChatSession[]; total: number }> => {
+      const response = await fetchLocal<{ sessions: Array<{
+        id: string;
+        courseId: string;
+        title: string | null;
+        createdAt: string;
+        updatedAt: string;
+      }> }>(
+        `/api/sessions${courseId ? `?courseId=${courseId}` : ""}`,
         { token }
-      ),
+      );
+
+      // Transform camelCase response to snake_case for frontend compatibility
+      return {
+        sessions: response.sessions.map((s) => ({
+          session_id: s.id,
+          session_name: s.title,
+          course_id: s.courseId,
+          created_at: s.createdAt,
+          updated_at: s.updatedAt,
+        })),
+        total: response.sessions.length,
+      };
+    },
 
     /**
-     * Create a new chat session
+     * Create a new chat session (uses local API route)
      */
-    create: (token: string, courseId: string) =>
-      fetchWithAuth<{ session_id: string }>("/sessions", {
+    create: async (token: string, courseId: string): Promise<{ session_id: string }> => {
+      const response = await fetchLocal<{
+        id: string;
+        courseId: string;
+        title: string | null;
+        createdAt: string;
+        updatedAt: string;
+      }>("/api/sessions", {
         token,
         method: "POST",
-        body: JSON.stringify({ course_id: courseId }),
-      }),
+        body: JSON.stringify({ courseId }),
+      });
+
+      return { session_id: response.id };
+    },
 
     /**
-     * Get messages for a session
+     * Get messages for a session (uses local API route)
      */
-    getMessages: (token: string, sessionId: string) =>
-      fetchWithAuth<StoredMessage[]>(`/sessions/${sessionId}/messages`, {
-        token,
-      }),
+    getMessages: async (token: string, sessionId: string): Promise<StoredMessage[]> => {
+      const response = await fetchLocal<{
+        messages: Array<{
+          id: string;
+          role: "user" | "assistant";
+          content: string;
+          createdAt: string;
+          sources?: Array<{
+            sourceId: string;
+            sourceType: "slide" | "lecture";
+            chunkNumber: number;
+            contentPreview: string;
+            documentId?: string;
+            slideNumber?: number;
+            lectureId?: string;
+            startSeconds?: number;
+            endSeconds?: number;
+            courseId?: string;
+            title?: string;
+          }>;
+        }>;
+      }>(`/api/sessions/${sessionId}/messages`, { token });
+
+      // Transform camelCase response to snake_case for frontend compatibility
+      return response.messages.map((msg) => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        created_at: msg.createdAt,
+        sources: msg.sources?.map((src): RAGSource => ({
+          source_id: src.sourceId,
+          source_type: src.sourceType,
+          chunk_number: src.chunkNumber,
+          content_preview: src.contentPreview,
+          document_id: src.documentId,
+          slide_number: src.slideNumber,
+          lecture_id: src.lectureId,
+          start_seconds: src.startSeconds,
+          end_seconds: src.endSeconds,
+          course_id: src.courseId,
+          title: src.title,
+        })),
+      }));
+    },
 
     /**
-     * Delete a session
+     * Delete a session (uses local API route)
      */
     delete: (token: string, sessionId: string) =>
-      fetchWithAuth<void>(`/sessions/${sessionId}`, {
+      fetchLocal<void>(`/api/sessions/${sessionId}`, {
         token,
         method: "DELETE",
       }),
 
     /**
-     * Generate title for a session
+     * Generate title for a session (uses local API route)
      */
-    generateTitle: (token: string, sessionId: string) =>
-      fetchWithAuth<{ session_name: string }>(
-        `/sessions/${sessionId}/generate-title`,
+    generateTitle: async (token: string, sessionId: string): Promise<{ session_name: string }> => {
+      const response = await fetchLocal<{ title: string | null }>(
+        `/api/sessions/${sessionId}/generate-title`,
         { token, method: "POST" }
-      ),
+      );
+
+      return { session_name: response.title || "" };
+    },
   },
 };
