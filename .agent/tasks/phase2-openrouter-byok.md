@@ -55,11 +55,11 @@ export const userApiKeys = pgTable('user_api_keys', {
 **Goal:** Create encryption utilities for secure API key storage.
 
 ### Subtasks
-- [ ] 2.1 Create `lib/crypto/encryption.ts` with `encryptApiKey` function
-- [ ] 2.2 Create `decryptApiKey` function
-- [ ] 2.3 Add `ENCRYPTION_KEY` to `.env.example`
-- [ ] 2.4 Generate encryption key for dev environment
-- [ ] 2.5 Write unit tests for encryption round-trip
+- [x] 2.1 Create `lib/crypto/encryption.ts` with `encryptApiKey` function
+- [x] 2.2 Create `decryptApiKey` function
+- [x] 2.3 Add `ENCRYPTION_KEY` to `.env.example` (note: `.env*` is gitignored; documented in .env.local)
+- [x] 2.4 Generate encryption key for dev environment
+- [x] 2.5 Write unit tests for encryption round-trip
 
 ### Implementation Notes
 - Use AES-256-GCM (authenticated encryption)
@@ -216,7 +216,7 @@ Phase 2 is complete when:
 
 ## Security Checklist
 
-- [ ] API keys encrypted with AES-256-GCM before storage
+- [x] API keys encrypted with AES-256-GCM before storage
 - [ ] Code verifier stored in HttpOnly, Secure cookie
 - [ ] Decrypted keys never sent to frontend
 - [ ] Decrypted keys never logged
