@@ -10,8 +10,9 @@ import {
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 
-import { db, chatSessions, chatMessages, messageSources } from '@/lib/db';
+import { db, chatSessions, chatMessages, messageSources, userApiKeys } from '@/lib/db';
 import { searchKnowledge, SYSTEM_PROMPT } from '@/lib/ai';
+import { decryptApiKey } from '@/lib/crypto';
 import type { RAGSource } from '@/types';
 
 export const maxDuration = 60;
@@ -80,8 +81,24 @@ export async function POST(req: Request) {
   // Collected sources during tool execution
   let collectedSources: RAGSource[] = [];
 
+  // Check for user's own API key (BYOK)
+  let apiKey = process.env.OPENROUTER_API_KEY!;
+
+  const userKey = await db.query.userApiKeys.findFirst({
+    where: eq(userApiKeys.userId, userId),
+  });
+
+  if (userKey) {
+    try {
+      apiKey = decryptApiKey(userKey.openrouterKeyEncrypted);
+    } catch {
+      console.error('Failed to decrypt user API key, using shared key');
+      // Fall back to shared key (apiKey remains unchanged)
+    }
+  }
+
   const openrouter = createOpenRouter({
-    apiKey: process.env.OPENROUTER_API_KEY,
+    apiKey,
   });
 
   const result = streamText({

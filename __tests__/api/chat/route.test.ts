@@ -11,6 +11,9 @@ vi.mock('@/lib/db', () => ({
       chatSessions: {
         findFirst: vi.fn(),
       },
+      userApiKeys: {
+        findFirst: vi.fn(),
+      },
     },
     insert: vi.fn(() => ({
       values: vi.fn(() => ({
@@ -42,11 +45,20 @@ vi.mock('@/lib/db', () => ({
     messageId: { name: 'message_id' },
     sessionId: { name: 'session_id' },
   },
+  userApiKeys: {
+    id: { name: 'id' },
+    userId: { name: 'user_id' },
+    openrouterKeyEncrypted: { name: 'openrouter_key_encrypted' },
+  },
 }));
 
 vi.mock('@/lib/ai', () => ({
   searchKnowledge: vi.fn(),
   SYSTEM_PROMPT: 'You are a helpful study assistant.',
+}));
+
+vi.mock('@/lib/crypto', () => ({
+  decryptApiKey: vi.fn(),
 }));
 
 vi.mock('@openrouter/ai-sdk-provider', () => ({
@@ -65,13 +77,18 @@ vi.mock('ai', () => ({
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { searchKnowledge } from '@/lib/ai';
+import { decryptApiKey } from '@/lib/crypto';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { streamText } from 'ai';
 
 describe('POST /api/chat', () => {
   const mockAuth = auth as unknown as ReturnType<typeof vi.fn>;
   const mockDbQuery = db.query.chatSessions.findFirst as ReturnType<typeof vi.fn>;
+  const mockUserApiKeysQuery = db.query.userApiKeys.findFirst as ReturnType<typeof vi.fn>;
   const mockDbInsert = db.insert as ReturnType<typeof vi.fn>;
   const mockSearchKnowledge = searchKnowledge as ReturnType<typeof vi.fn>;
+  const mockDecryptApiKey = decryptApiKey as ReturnType<typeof vi.fn>;
+  const mockCreateOpenRouter = createOpenRouter as ReturnType<typeof vi.fn>;
   const mockStreamText = streamText as ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -88,6 +105,17 @@ describe('POST /api/chat', () => {
       title: null,
       createdAt: new Date(),
       updatedAt: new Date(),
+    });
+
+    // Default user API keys mock - no user key by default
+    mockUserApiKeysQuery.mockResolvedValue(null);
+
+    // Default decrypt mock
+    mockDecryptApiKey.mockReturnValue('decrypted-user-api-key');
+
+    // Default createOpenRouter mock
+    mockCreateOpenRouter.mockReturnValue({
+      chat: vi.fn((model: string) => ({ modelId: model })),
     });
 
     // Default insert mock
@@ -437,6 +465,134 @@ describe('POST /api/chat', () => {
           system: 'You are a helpful study assistant.',
         })
       );
+    });
+  });
+
+  describe('user API key handling (BYOK)', () => {
+    it('uses shared API key when user has no connected key', async () => {
+      // User has no API key in database
+      mockUserApiKeysQuery.mockResolvedValue(null);
+
+      const { POST } = await import('@/app/api/chat/route');
+      const request = new Request('http://localhost/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ id: '1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }],
+          sessionId: 'session-uuid',
+          courseId: 'course-uuid',
+        }),
+      });
+
+      await POST(request);
+
+      // Should use shared key from env
+      expect(mockCreateOpenRouter).toHaveBeenCalledWith({
+        apiKey: 'test-openrouter-key',
+      });
+      // decryptApiKey should not be called
+      expect(mockDecryptApiKey).not.toHaveBeenCalled();
+    });
+
+    it('uses decrypted user API key when user has connected key', async () => {
+      // User has an API key in database
+      mockUserApiKeysQuery.mockResolvedValue({
+        id: 'key-uuid',
+        userId: 'user_123',
+        openrouterKeyEncrypted: 'encrypted:api:key',
+        openrouterKeyHash: 'hash123',
+        keyLabel: 'sk-or-v1-...abc',
+        connectedAt: new Date(),
+      });
+
+      mockDecryptApiKey.mockReturnValue('decrypted-user-api-key');
+
+      const { POST } = await import('@/app/api/chat/route');
+      const request = new Request('http://localhost/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ id: '1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }],
+          sessionId: 'session-uuid',
+          courseId: 'course-uuid',
+        }),
+      });
+
+      await POST(request);
+
+      // Should decrypt the user's key
+      expect(mockDecryptApiKey).toHaveBeenCalledWith('encrypted:api:key');
+      // Should use decrypted key
+      expect(mockCreateOpenRouter).toHaveBeenCalledWith({
+        apiKey: 'decrypted-user-api-key',
+      });
+    });
+
+    it('falls back to shared key when decryption fails', async () => {
+      // User has an API key but decryption fails
+      mockUserApiKeysQuery.mockResolvedValue({
+        id: 'key-uuid',
+        userId: 'user_123',
+        openrouterKeyEncrypted: 'corrupted:encrypted:data',
+        openrouterKeyHash: 'hash123',
+        keyLabel: 'sk-or-v1-...abc',
+        connectedAt: new Date(),
+      });
+
+      // Mock decryption to throw an error
+      mockDecryptApiKey.mockImplementation(() => {
+        throw new Error('Decryption failed: invalid data');
+      });
+
+      // Spy on console.error to verify logging
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const { POST } = await import('@/app/api/chat/route');
+      const request = new Request('http://localhost/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ id: '1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }],
+          sessionId: 'session-uuid',
+          courseId: 'course-uuid',
+        }),
+      });
+
+      await POST(request);
+
+      // Should attempt decryption
+      expect(mockDecryptApiKey).toHaveBeenCalled();
+      // Should fall back to shared key
+      expect(mockCreateOpenRouter).toHaveBeenCalledWith({
+        apiKey: 'test-openrouter-key',
+      });
+      // Should log the error
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to decrypt user API key, using shared key'
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('queries userApiKeys with correct userId', async () => {
+      mockUserApiKeysQuery.mockResolvedValue(null);
+
+      const { POST } = await import('@/app/api/chat/route');
+      const request = new Request('http://localhost/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ id: '1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }],
+          sessionId: 'session-uuid',
+          courseId: 'course-uuid',
+        }),
+      });
+
+      await POST(request);
+
+      // Verify the query was called (we can't easily verify the where clause
+      // due to how drizzle-orm works, but we can verify it was called)
+      expect(mockUserApiKeysQuery).toHaveBeenCalled();
     });
   });
 });
