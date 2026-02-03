@@ -170,6 +170,12 @@ const openrouter = createOpenRouter({ apiKey });
 - [x] 5.7 Test chat route falls back to shared key
 - [x] 5.8 Test invalid key handling
 
+### Subtasks - E2E Tests
+- [x] 5.12 E2E tests for status endpoint (authenticated)
+- [x] 5.13 E2E tests for connect endpoint (PKCE, cookies, redirect)
+- [x] 5.14 E2E tests for disconnect endpoint (idempotent)
+- [x] 5.15 E2E tests for callback endpoint (error handling)
+
 ### Subtasks - Manual Testing
 - [ ] 5.9 Full OAuth flow against real OpenRouter (dev account)
 - [ ] 5.10 Verify chat works with user's own key
@@ -179,6 +185,7 @@ const openrouter = createOpenRouter({ apiKey });
 - `__tests__/lib/crypto/encryption.test.ts`
 - `__tests__/api/openrouter/*.test.ts`
 - Updated `__tests__/api/chat/route.test.ts`
+- `e2e/tests/openrouter-byok.spec.ts` (13 E2E tests)
 
 ---
 
