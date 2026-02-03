@@ -1,9 +1,15 @@
+import { appendFileSync, writeFileSync } from 'fs';
 import pLimit from 'p-limit';
 import { extractPageContent } from './gemini-extractor';
 
 /**
+ * Log file path for debugging LLM extraction output.
+ * Set DOCUMENT_DEBUG_LOG env var to enable logging.
+ */
+const DEBUG_LOG_PATH = process.env.DOCUMENT_DEBUG_LOG || '';
+
+/**
  * Maximum number of concurrent page extraction requests.
- * Balances speed vs rate limits on OpenRouter/Gemini.
  */
 export const CONCURRENCY_LIMIT = 5;
 
@@ -11,12 +17,18 @@ export const CONCURRENCY_LIMIT = 5;
  * Number of retry attempts on page extraction failure.
  * After MAX_RETRIES + 1 total attempts, the page is skipped.
  */
-export const MAX_RETRIES = 1;
+export const MAX_RETRIES = 3;
 
 /**
- * Delay in milliseconds before retrying a failed page extraction.
+ * Base delay in milliseconds before retrying (exponential backoff).
+ * Actual delay = BASE_RETRY_DELAY_MS * 2^attempt
  */
-const RETRY_DELAY_MS = 1000;
+const BASE_RETRY_DELAY_MS = 2000;
+
+/**
+ * Delay between successful requests to avoid rate limiting.
+ */
+const REQUEST_DELAY_MS = 500;
 
 /**
  * Result of processing a single PDF page.
@@ -48,14 +60,26 @@ export async function processPageWithRetry(
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const content = await extractPageContent(pageBytes, apiKey);
+
+      // Debug logging if enabled
+      if (DEBUG_LOG_PATH) {
+        const logEntry = `\n${'='.repeat(60)}\nPAGE ${pageNumber + 1}\n${'='.repeat(60)}\n${content}\n`;
+        appendFileSync(DEBUG_LOG_PATH, logEntry);
+      }
+
+      // Small delay after success to avoid rate limiting
+      await new Promise((r) => setTimeout(r, REQUEST_DELAY_MS));
+
       return { pageNumber, content, success: true };
     } catch (error) {
       if (attempt === MAX_RETRIES) {
         console.error(`Page ${pageNumber} failed after ${MAX_RETRIES + 1} attempts:`, error);
         return { pageNumber, content: null, success: false, error };
       }
-      // Wait before retry
-      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      // Exponential backoff: 2s, 4s, 8s
+      const delay = BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
+      console.warn(`Page ${pageNumber} attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+      await new Promise((r) => setTimeout(r, delay));
     }
   }
 
@@ -80,6 +104,11 @@ export async function processPages(
 ): Promise<PageResult[]> {
   if (pages.length === 0) {
     return [];
+  }
+
+  // Clear debug log at start of new document
+  if (DEBUG_LOG_PATH) {
+    writeFileSync(DEBUG_LOG_PATH, `LLM Extraction Log - ${new Date().toISOString()}\nTotal pages: ${pages.length}\n`);
   }
 
   const limit = pLimit(CONCURRENCY_LIMIT);

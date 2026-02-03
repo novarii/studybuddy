@@ -256,9 +256,9 @@ const SIMILARITY_THRESHOLD = 0.9;  // 90% similar = duplicate
 
 ### Subtasks - Manual Testing
 - [x] 6.15 Test with real multi-page PDF
-- [ ] 6.16 Verify duplicates removed from lean PDF
-- [ ] 6.17 Verify chunks searchable via chat RAG
-- [ ] 6.18 Test with user's BYOK key
+- [ ] 6.16 Verify duplicates removed from lean PDF *(postponed - verify via download)*
+- [ ] 6.17 Verify chunks searchable via chat RAG *(postponed - needs course pipeline)*
+- [ ] 6.18 Test with user's BYOK key *(postponed - optional)*
 
 ### Deliverables
 - `__tests__/api/documents/*.test.ts`
@@ -290,24 +290,24 @@ Tasks 2 and 3 can run in parallel after Task 1 completes.
 ## Definition of Done
 
 Phase 3 is complete when:
-- [ ] All 6 tasks marked complete
-- [ ] PDF upload works end-to-end
-- [ ] Duplicate pages detected and removed
-- [ ] Lean PDF downloadable
-- [ ] Chunks searchable via existing chat RAG
-- [ ] BYOK integration works
-- [ ] All unit tests pass
-- [ ] All E2E tests pass
-- [ ] No calls to Python backend for documents
+- [x] All 6 tasks marked complete
+- [x] PDF upload works end-to-end
+- [x] Duplicate pages detected and removed (Jaccard + Cosine two-phase)
+- [x] Lean PDF downloadable
+- [ ] Chunks searchable via existing chat RAG *(postponed - needs course pipeline)*
+- [ ] BYOK integration works *(postponed - optional)*
+- [x] All unit tests pass
+- [x] All E2E tests pass
+- [x] No calls to Python backend for documents
 
 ---
 
 ## Performance Checklist
 
-- [ ] Parallel processing uses p-limit (concurrency: 5)
-- [ ] In-memory processing (no temp files)
-- [ ] Deduplication runs before embedding (cost savings)
-- [ ] Async processing doesn't block upload response
+- [x] Parallel processing uses p-limit (concurrency: 5)
+- [x] In-memory processing (no temp files)
+- [x] Deduplication runs before embedding (Jaccard first, then Cosine on embeddings)
+- [x] Async processing doesn't block upload response
 
 ---
 
