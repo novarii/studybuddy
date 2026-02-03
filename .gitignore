@@ -49,4 +49,5 @@ _legacy/
 
 # ai
 .claude/
-.mcp.json
+images/*
+!images/.gitkeep
