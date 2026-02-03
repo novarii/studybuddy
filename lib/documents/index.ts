@@ -9,3 +9,16 @@ export {
   MAX_RETRIES,
   type PageResult,
 } from './page-processor';
+export {
+  jaccardSimilarity,
+  deduplicatePages,
+  SIMILARITY_THRESHOLD,
+  type DeduplicationResult,
+} from './deduplication';
+export {
+  generateChunkEmbeddings,
+  insertChunks,
+  prepareChunks,
+  type ChunkData,
+  type InsertChunksOptions,
+} from './chunk-ingestion';

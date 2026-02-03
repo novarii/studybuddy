@@ -225,7 +225,6 @@ describe('processPageWithRetry', () => {
       .mockRejectedValueOnce(new Error('Error'))
       .mockResolvedValueOnce('Success');
 
-    const startTime = Date.now();
     const promise = processPageWithRetry(mockPageBytes, 0, mockApiKey);
 
     // First call happens immediately
