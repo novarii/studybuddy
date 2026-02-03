@@ -121,11 +121,11 @@ NEXT_PUBLIC_APP_URL=        # For OAuth callback URL construction
 **Goal:** Modify chat route to use user's API key when available.
 
 ### Subtasks
-- [ ] 4.1 Add user key lookup to `app/api/chat/route.ts`
-- [ ] 4.2 Decrypt user key if found
-- [ ] 4.3 Fall back to shared key if no user key or decryption fails
-- [ ] 4.4 Pass correct key to `createOpenRouter()`
-- [ ] 4.5 Add error handling for invalid/revoked keys
+- [x] 4.1 Add user key lookup to `app/api/chat/route.ts`
+- [x] 4.2 Decrypt user key if found
+- [x] 4.3 Fall back to shared key if no user key or decryption fails
+- [x] 4.4 Pass correct key to `createOpenRouter()`
+- [x] 4.5 Add error handling for invalid/revoked keys
 
 ### Code Changes
 ```typescript
@@ -166,9 +166,9 @@ const openrouter = createOpenRouter({ apiKey });
 
 ### Subtasks - Integration Tests
 - [x] 5.5 Test OAuth flow with mocked OpenRouter endpoints
-- [ ] 5.6 Test chat route uses user key when available
-- [ ] 5.7 Test chat route falls back to shared key
-- [ ] 5.8 Test invalid key handling
+- [x] 5.6 Test chat route uses user key when available
+- [x] 5.7 Test chat route falls back to shared key
+- [x] 5.8 Test invalid key handling
 
 ### Subtasks - Manual Testing
 - [ ] 5.9 Full OAuth flow against real OpenRouter (dev account)
