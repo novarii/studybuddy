@@ -148,18 +148,18 @@ const limit = pLimit(5);  // 5 concurrent requests
 **Goal:** Implement Jaccard deduplication and embedding generation.
 
 ### Subtasks - Deduplication
-- [ ] 4.1 Create `lib/documents/deduplication.ts`
-- [ ] 4.2 Implement `jaccardSimilarity()` - word-set similarity
-- [ ] 4.3 Implement `deduplicatePages()` - filter pages above 90% similarity
-- [ ] 4.4 Write unit tests for Jaccard similarity edge cases
-- [ ] 4.5 Write unit tests for deduplication logic
+- [x] 4.1 Create `lib/documents/deduplication.ts`
+- [x] 4.2 Implement `jaccardSimilarity()` - word-set similarity
+- [x] 4.3 Implement `deduplicatePages()` - filter pages above 90% similarity
+- [x] 4.4 Write unit tests for Jaccard similarity edge cases
+- [x] 4.5 Write unit tests for deduplication logic
 
 ### Subtasks - Embedding & Storage
-- [ ] 4.6 Create `lib/documents/chunk-ingestion.ts`
-- [ ] 4.7 Implement `generateChunkEmbeddings()` - batch embed unique pages
-- [ ] 4.8 Implement `insertChunks()` - insert into `ai.slide_chunks_knowledge`
-- [ ] 4.9 Reuse existing `lib/ai/embeddings.ts` for OpenRouter embeddings
-- [ ] 4.10 Write unit tests for chunk ingestion (mock DB)
+- [x] 4.6 Create `lib/documents/chunk-ingestion.ts`
+- [x] 4.7 Implement `generateChunkEmbeddings()` - batch embed unique pages
+- [x] 4.8 Implement `insertChunks()` - insert into `ai.slide_chunks_knowledge`
+- [x] 4.9 Reuse existing `lib/ai/embeddings.ts` for OpenRouter embeddings
+- [x] 4.10 Write unit tests for chunk ingestion (mock DB)
 
 ### Similarity Threshold
 ```typescript
