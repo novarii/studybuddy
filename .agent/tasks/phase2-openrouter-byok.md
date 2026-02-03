@@ -19,11 +19,11 @@
 **Goal:** Add `user_api_keys` table to store encrypted OpenRouter keys.
 
 ### Subtasks
-- [ ] 1.1 Add `userApiKeys` table to `lib/db/schema.ts`
-- [ ] 1.2 Generate migration with `drizzle-kit generate`
-- [ ] 1.3 Run migration against dev database
-- [ ] 1.4 Verify table created in `ai` schema
-- [ ] 1.5 Export `userApiKeys` from `lib/db/index.ts`
+- [x] 1.1 Add `userApiKeys` table to `lib/db/schema.ts`
+- [x] 1.2 Generate migration with `drizzle-kit generate`
+- [x] 1.3 Run migration against dev database
+- [x] 1.4 Verify table created in `ai` schema
+- [x] 1.5 Export `userApiKeys` from `lib/db/index.ts`
 
 ### Schema Definition
 ```typescript
