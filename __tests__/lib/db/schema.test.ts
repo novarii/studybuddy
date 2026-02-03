@@ -5,6 +5,7 @@ import {
   chatMessages,
   messageSources,
   userApiKeys,
+  documents,
   aiSchema,
 } from '@/lib/db/schema';
 
@@ -98,6 +99,43 @@ describe('Database Schema', () => {
       expect(columns).toContain('lastVerifiedAt');
       expect(columns).toContain('createdAt');
       expect(columns).toContain('updatedAt');
+    });
+  });
+
+  describe('documents table', () => {
+    it('should have correct table name', () => {
+      expect(getTableName(documents)).toBe('documents');
+    });
+
+    it('should have required columns', () => {
+      const columns = Object.keys(documents);
+      expect(columns).toContain('id');
+      expect(columns).toContain('userId');
+      expect(columns).toContain('courseId');
+      expect(columns).toContain('filename');
+      expect(columns).toContain('checksum');
+      expect(columns).toContain('status');
+      expect(columns).toContain('filePath');
+    });
+
+    it('should have processing status columns', () => {
+      const columns = Object.keys(documents);
+      expect(columns).toContain('pageCount');
+      expect(columns).toContain('uniquePageCount');
+      expect(columns).toContain('failedPages');
+      expect(columns).toContain('errorMessage');
+    });
+
+    it('should have file path columns', () => {
+      const columns = Object.keys(documents);
+      expect(columns).toContain('filePath');
+      expect(columns).toContain('processedFilePath');
+    });
+
+    it('should have timestamp columns', () => {
+      const columns = Object.keys(documents);
+      expect(columns).toContain('createdAt');
+      expect(columns).toContain('processedAt');
     });
   });
 });

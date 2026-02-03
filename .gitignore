@@ -54,3 +54,6 @@ images/*
 
 # MCP config (contains API keys)
 .mcp.json
+
+# Document uploads
+/uploads/

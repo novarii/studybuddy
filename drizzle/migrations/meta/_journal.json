@@ -15,6 +15,13 @@
       "when": 1770078117984,
       "tag": "0001_shallow_forge",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770090848499,
+      "tag": "0002_hard_paper_doll",
+      "breakpoints": true
     }
   ]
 }
