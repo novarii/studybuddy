@@ -119,17 +119,10 @@ export const StudyBuddyClient = () => {
     }
   }, [chatError, toast]);
 
-  // Reset session when course changes
-  useEffect(() => {
-    setCurrentSessionId(null);
-  }, [currentCourseId]);
-
-  // Auto-select first session when sessions load
-  useEffect(() => {
-    if (!currentSessionId && sessions.length > 0) {
-      setCurrentSessionId(sessions[0].session_id);
-    }
-  }, [sessions, currentSessionId]);
+  // Auto-select first session when sessions load (conditional setState during render)
+  if (!currentSessionId && sessions.length > 0) {
+    setCurrentSessionId(sessions[0].session_id);
+  }
 
   // Auto-generate title after first assistant response
   useEffect(() => {
@@ -149,6 +142,7 @@ export const StudyBuddyClient = () => {
 
   const handleCourseChange = (course: Course) => {
     setCurrentCourseId(course.id);
+    setCurrentSessionId(null); // Reset session when course changes
   };
 
   const handleDeleteCourse = async (courseId: string) => {
@@ -165,6 +159,7 @@ export const StudyBuddyClient = () => {
         } else {
           setCurrentCourseId("");
         }
+        setCurrentSessionId(null); // Reset session when course changes
       }
 
       if (courseToDelete) {
@@ -180,6 +175,7 @@ export const StudyBuddyClient = () => {
     const success = await addCourse(course);
     if (success) {
       setCurrentCourseId(course.id);
+      setCurrentSessionId(null); // Reset session when course changes
       toast({
         title: "Course added",
         description: `${course.code} - ${course.title} has been added to your list.`,

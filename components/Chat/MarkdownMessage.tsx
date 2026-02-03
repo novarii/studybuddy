@@ -116,7 +116,6 @@ export const MarkdownMessage = memo(function MarkdownMessage({
 function preprocessCitations(content: string): string {
   // Split by code blocks and inline code to avoid processing citations inside them
   const parts: string[] = [];
-  let remaining = content;
 
   // Match code blocks (```...```) and inline code (`...`)
   const codeRegex = /(```[\s\S]*?```|`[^`]+`)/g;

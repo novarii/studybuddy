@@ -224,7 +224,8 @@ export const useChat = (
     setStreamingSources([]);
   }, [setMessages]);
 
-  const deleteCourseHistory = useCallback((_deletedCourseId: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const deleteCourseHistory = useCallback((deletedCourseId: string) => {
     // Note: AI SDK v5 manages its own history per id
     // This is now handled by changing the id prop
   }, []);
