@@ -57,7 +57,7 @@ describe('GET /api/openrouter/connect', () => {
       expect(redirectUrl.searchParams.get('code_challenge_method')).toBe('S256');
     });
 
-    it('sets HttpOnly secure cookie with code verifier', async () => {
+    it('sets HttpOnly cookie with code verifier', async () => {
       const { GET } = await import('@/app/api/openrouter/connect/route');
 
       const response = await GET();
@@ -66,7 +66,10 @@ describe('GET /api/openrouter/connect', () => {
       expect(setCookie).toBeTruthy();
       expect(setCookie).toContain('openrouter_verifier=');
       expect(setCookie).toContain('HttpOnly');
-      expect(setCookie).toContain('Secure');
+      // Secure flag only added in production (NODE_ENV === 'production')
+      if (process.env.NODE_ENV === 'production') {
+        expect(setCookie).toContain('Secure');
+      }
       expect(setCookie).toContain('SameSite=Lax');
       expect(setCookie).toContain('Max-Age=600');
       expect(setCookie).toContain('Path=/');

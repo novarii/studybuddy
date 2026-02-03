@@ -21,6 +21,13 @@ export async function GET() {
     .update(codeVerifier)
     .digest('base64url');
 
+  console.log('Generated PKCE values:', {
+    verifier: codeVerifier.slice(0, 8) + '...',
+    verifierLength: codeVerifier.length,
+    challenge: codeChallenge.slice(0, 8) + '...',
+    challengeLength: codeChallenge.length,
+  });
+
   const callbackUrl = `${appUrl}/api/openrouter/callback`;
 
   const authUrl = new URL('https://openrouter.ai/auth');
@@ -29,11 +36,17 @@ export async function GET() {
   authUrl.searchParams.set('code_challenge_method', 'S256');
 
   // Return redirect with code verifier stored in secure cookie
+  // Only use Secure flag in production (HTTPS)
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieFlags = isProduction
+    ? 'HttpOnly; Secure; SameSite=Lax; Max-Age=600; Path=/'
+    : 'HttpOnly; SameSite=Lax; Max-Age=600; Path=/';
+
   return new Response(null, {
     status: 302,
     headers: {
       Location: authUrl.toString(),
-      'Set-Cookie': `openrouter_verifier=${codeVerifier}; HttpOnly; Secure; SameSite=Lax; Max-Age=600; Path=/`,
+      'Set-Cookie': `openrouter_verifier=${codeVerifier}; ${cookieFlags}`,
     },
   });
 }

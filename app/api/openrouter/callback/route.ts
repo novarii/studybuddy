@@ -42,6 +42,13 @@ export async function GET(req: Request) {
   }
 
   // Exchange code for API key
+  console.log('Exchanging code for API key...', {
+    code: code.slice(0, 8) + '...',
+    codeLength: code.length,
+    verifier: codeVerifier.slice(0, 8) + '...',
+    verifierLength: codeVerifier.length,
+  });
+
   let tokenResponse: Response;
   try {
     tokenResponse = await fetch('https://openrouter.ai/api/v1/auth/keys', {
@@ -61,7 +68,13 @@ export async function GET(req: Request) {
 
   if (!tokenResponse.ok) {
     const errorText = await tokenResponse.text();
-    console.error('OpenRouter token exchange failed:', errorText);
+    console.error('OpenRouter token exchange failed:', {
+      status: tokenResponse.status,
+      statusText: tokenResponse.statusText,
+      body: errorText,
+      codeLength: code.length,
+      verifierLength: codeVerifier.length,
+    });
     settingsUrl.searchParams.set('error', 'exchange_failed');
     return Response.redirect(settingsUrl.toString());
   }
