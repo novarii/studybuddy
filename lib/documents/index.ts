@@ -22,3 +22,9 @@ export {
   type ChunkData,
   type InsertChunksOptions,
 } from './chunk-ingestion';
+export {
+  processDocument,
+  updateDocumentStatus,
+  type ProcessDocumentOptions,
+  type DocumentStatusUpdate,
+} from './pipeline';

@@ -179,39 +179,39 @@ const SIMILARITY_THRESHOLD = 0.9;  // 90% similar = duplicate
 **Goal:** Implement document CRUD endpoints with async processing.
 
 ### Subtasks - Pipeline Orchestration
-- [ ] 5.1 Create `lib/documents/pipeline.ts`
-- [ ] 5.2 Implement `processDocument()` - full async pipeline orchestration
-- [ ] 5.3 Implement status updates throughout pipeline
-- [ ] 5.4 Implement error handling and status: 'failed'
+- [x] 5.1 Create `lib/documents/pipeline.ts`
+- [x] 5.2 Implement `processDocument()` - full async pipeline orchestration
+- [x] 5.3 Implement status updates throughout pipeline
+- [x] 5.4 Implement error handling and status: 'failed'
 
 ### Subtasks - Upload Endpoint
-- [ ] 5.5 Create `app/api/documents/route.ts` (POST - upload)
-- [ ] 5.6 Implement multipart form-data parsing
-- [ ] 5.7 Implement file validation (PDF only, size limit)
-- [ ] 5.8 Implement checksum computation and duplicate check
-- [ ] 5.9 Store original PDF and create document record
-- [ ] 5.10 Trigger async processing (don't await)
-- [ ] 5.11 Return 202 Accepted with document ID
+- [x] 5.5 Create `app/api/documents/route.ts` (POST - upload)
+- [x] 5.6 Implement multipart form-data parsing
+- [x] 5.7 Implement file validation (PDF only, size limit)
+- [x] 5.8 Implement checksum computation and duplicate check
+- [x] 5.9 Store original PDF and create document record
+- [x] 5.10 Trigger async processing (don't await)
+- [x] 5.11 Return 202 Accepted with document ID
 
 ### Subtasks - List Endpoint
-- [ ] 5.12 Implement GET handler in `app/api/documents/route.ts`
-- [ ] 5.13 Filter by courseId (required)
-- [ ] 5.14 Return document list with status
+- [x] 5.12 Implement GET handler in `app/api/documents/route.ts`
+- [x] 5.13 Filter by courseId (required)
+- [x] 5.14 Return document list with status
 
 ### Subtasks - Detail/Status Endpoint
-- [ ] 5.15 Create `app/api/documents/[id]/route.ts` (GET - status)
-- [ ] 5.16 Return document details including processing status
-- [ ] 5.17 Implement DELETE handler - remove document + chunks + files
+- [x] 5.15 Create `app/api/documents/[id]/route.ts` (GET - status)
+- [x] 5.16 Return document details including processing status
+- [x] 5.17 Implement DELETE handler - remove document + chunks + files
 
 ### Subtasks - File Download Endpoint
-- [ ] 5.18 Create `app/api/documents/[id]/file/route.ts` (GET - download)
-- [ ] 5.19 Stream processed PDF (or original if not yet processed)
-- [ ] 5.20 Set correct Content-Type and Content-Disposition headers
+- [x] 5.18 Create `app/api/documents/[id]/file/route.ts` (GET - download)
+- [x] 5.19 Stream processed PDF (or original if not yet processed)
+- [x] 5.20 Set correct Content-Type and Content-Disposition headers
 
 ### Subtasks - Auth & Validation
-- [ ] 5.21 Add Clerk auth checks to all endpoints
-- [ ] 5.22 Add ownership verification (user can only access own documents)
-- [ ] 5.23 Add course ownership verification
+- [x] 5.21 Add Clerk auth checks to all endpoints
+- [x] 5.22 Add ownership verification (user can only access own documents)
+- [x] 5.23 Add course ownership verification
 
 ### Endpoint Summary
 | Method | Path | Purpose |
