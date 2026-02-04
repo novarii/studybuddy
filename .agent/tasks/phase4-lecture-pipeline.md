@@ -2,6 +2,19 @@
 
 **Spec Reference:** [04-lecture-pipeline.md](../specs/migration/04-lecture-pipeline.md)
 
+## Current Status
+
+**Next task:** Task 5.7 - Implement `findExistingLecture()`
+
+**Recent fixes:**
+- Created missing migration for `ai.lecture_chunks_knowledge` table (was referenced by pipeline but never created)
+- Migration file: `drizzle/migrations/0005_lecture_chunks_knowledge.sql`
+- Added to `meta/_journal.json` and applied to database
+
+**Tasks 1-4 complete.** Task 5 (API Routes & Pipeline) is in progress - subtasks 5.1-5.6 done, starting 5.7.
+
+---
+
 ## Task Overview
 
 | Task | Description | Dependencies | Effort |
