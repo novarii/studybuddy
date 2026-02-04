@@ -8,6 +8,8 @@ import {
   documents,
   lectures,
   userLectures,
+  courses,
+  userCourses,
   aiSchema,
 } from '@/lib/db/schema';
 
@@ -184,6 +186,44 @@ describe('Database Schema', () => {
       const columns = Object.keys(userLectures);
       expect(columns).toContain('userId');
       expect(columns).toContain('lectureId');
+      expect(columns).toContain('createdAt');
+    });
+  });
+
+  describe('courses table', () => {
+    it('should have correct table name', () => {
+      expect(getTableName(courses)).toBe('courses');
+    });
+
+    it('should have required columns', () => {
+      const columns = Object.keys(courses);
+      expect(columns).toContain('id');
+      expect(columns).toContain('code');
+      expect(columns).toContain('title');
+    });
+
+    it('should have optional metadata columns', () => {
+      const columns = Object.keys(courses);
+      expect(columns).toContain('instructor');
+      expect(columns).toContain('isOfficial');
+    });
+
+    it('should have timestamp columns', () => {
+      const columns = Object.keys(courses);
+      expect(columns).toContain('createdAt');
+      expect(columns).toContain('updatedAt');
+    });
+  });
+
+  describe('userCourses table', () => {
+    it('should have correct table name', () => {
+      expect(getTableName(userCourses)).toBe('user_courses');
+    });
+
+    it('should have required columns', () => {
+      const columns = Object.keys(userCourses);
+      expect(columns).toContain('userId');
+      expect(columns).toContain('courseId');
       expect(columns).toContain('createdAt');
     });
   });

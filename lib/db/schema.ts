@@ -201,3 +201,41 @@ export type NewLecture = typeof lectures.$inferInsert;
 
 export type UserLecture = typeof userLectures.$inferSelect;
 export type NewUserLecture = typeof userLectures.$inferInsert;
+
+// Courses table - synced from CDCS catalog
+export const courses = aiSchema.table(
+  'courses',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    code: text('code').notNull().unique(),
+    title: text('title').notNull(),
+    instructor: text('instructor'),
+    isOfficial: boolean('is_official').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [index('idx_courses_code').on(table.code)]
+);
+
+// Many-to-many: users enrolled in courses
+export const userCourses = aiSchema.table(
+  'user_courses',
+  {
+    userId: text('user_id').notNull(), // Clerk ID directly - no users table needed
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.courseId] }),
+    index('idx_user_courses_user_id').on(table.userId),
+    index('idx_user_courses_course_id').on(table.courseId),
+  ]
+);
+
+export type Course = typeof courses.$inferSelect;
+export type NewCourse = typeof courses.$inferInsert;
+
+export type UserCourse = typeof userCourses.$inferSelect;
+export type NewUserCourse = typeof userCourses.$inferInsert;

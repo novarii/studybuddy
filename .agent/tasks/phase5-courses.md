@@ -22,11 +22,11 @@
 **Goal:** Add courses tables to Drizzle schema and create migration.
 
 ### Subtasks
-- [ ] 1.1 Add `courses` table to `lib/db/schema.ts` (in `ai` schema)
-- [ ] 1.2 Add `userCourses` table to `lib/db/schema.ts` (uses TEXT userId - Clerk ID)
-- [ ] 1.3 Run `drizzle-kit generate` to create migration
-- [ ] 1.4 Run `drizzle-kit migrate` to apply migration
-- [ ] 1.5 Export types from `lib/db/index.ts`
+- [x] 1.1 Add `courses` table to `lib/db/schema.ts` (in `ai` schema)
+- [x] 1.2 Add `userCourses` table to `lib/db/schema.ts` (uses TEXT userId - Clerk ID)
+- [x] 1.3 Run `drizzle-kit generate` to create migration
+- [x] 1.4 Run `drizzle-kit migrate` to apply migration
+- [x] 1.5 Export types from `lib/db/index.ts`
 
 ### Schema
 ```typescript
