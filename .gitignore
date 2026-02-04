@@ -51,3 +51,9 @@ _legacy/
 .claude/
 images/*
 !images/.gitkeep
+
+# MCP config (contains API keys)
+.mcp.json
+
+# Document uploads
+/uploads/

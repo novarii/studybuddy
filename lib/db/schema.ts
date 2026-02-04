@@ -9,6 +9,8 @@ import {
   check,
   numeric,
   boolean,
+  jsonb,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -112,3 +114,33 @@ export const userApiKeys = aiSchema.table(
 
 export type UserApiKey = typeof userApiKeys.$inferSelect;
 export type NewUserApiKey = typeof userApiKeys.$inferInsert;
+
+export const documents = aiSchema.table(
+  'documents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    courseId: uuid('course_id').notNull(),
+    filename: text('filename').notNull(),
+    checksum: text('checksum').notNull(),
+    status: text('status').notNull().default('processing'),
+    pageCount: integer('page_count'),
+    uniquePageCount: integer('unique_page_count'),
+    failedPages: jsonb('failed_pages').$type<number[]>(),
+    errorMessage: text('error_message'),
+    filePath: text('file_path').notNull(),
+    processedFilePath: text('processed_file_path'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('idx_documents_user_id').on(table.userId),
+    index('idx_documents_course_id').on(table.courseId),
+    uniqueIndex('idx_documents_checksum').on(table.checksum),
+  ]
+);
+
+export type Document = typeof documents.$inferSelect;
+export type NewDocument = typeof documents.$inferInsert;

@@ -19,12 +19,14 @@ A **spec** is an atomic source of truth document. It can contain:
 
 ## Spec Lookup Table
 
-*Last updated: 2026-02-01*
+*Last updated: 2026-02-04*
 
 | Spec | Description | Key Topics |
 |------|-------------|------------|
 | [migration/00-overview.md](./migration/00-overview.md) | Backend migration plan | Python → Next.js/TypeScript, AI SDK, OpenRouter BYOK |
 | [migration/02-openrouter-byok.md](./migration/02-openrouter-byok.md) | Phase 2: BYOK implementation | OAuth PKCE, encrypted key storage, user API keys |
+| [migration/03-document-pipeline.md](./migration/03-document-pipeline.md) | Phase 3: Document pipeline | PDF upload, Gemini extraction, parallel processing, deduplication |
+| [migration/04-lecture-pipeline.md](./migration/04-lecture-pipeline.md) | Phase 4: Lecture pipeline | RunPod transcription, semantic chunking, LLM topic detection |
 | [architecture.md](./architecture.md) | Frontend architecture | Next.js App Router, 3-column layout, state management |
 | [tech-stack.md](./tech-stack.md) | Technology choices | Next.js 16, React 19, Tailwind v4, Clerk |
 | [ui-component-library.md](./ui-component-library.md) | UI component system | shadcn/ui, Radix primitives, cva variants |
