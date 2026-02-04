@@ -6,7 +6,7 @@
  */
 
 import { db, courses } from '@/lib/db';
-import { eq, inArray } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 import {
   CdcsCourse,
   SyncResult,

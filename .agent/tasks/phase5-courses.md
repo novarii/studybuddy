@@ -86,13 +86,13 @@ https://cdcs.ur.rochester.edu/XMLQuery.aspx?id=XML&term={term}&type=Lecture
 **Goal:** Create Next.js API routes for course operations.
 
 ### Subtasks
-- [ ] 3.1 Create `app/api/cron/sync-courses/route.ts` (cron job, protected by CRON_SECRET)
-- [ ] 3.2 Create `app/api/courses/route.ts` (GET - list all courses)
-- [ ] 3.3 Create `app/api/user/courses/route.ts` (GET - user's enrolled courses)
-- [ ] 3.4 Create `app/api/user/courses/[courseId]/route.ts` (POST add, DELETE remove)
-- [ ] 3.5 Add Clerk auth to user routes
-- [ ] 3.6 Configure cron schedule in `vercel.json`
-- [ ] 3.7 Write API route tests
+- [x] 3.1 Create `app/api/cron/sync-courses/route.ts` (cron job, protected by CRON_SECRET)
+- [x] 3.2 Create `app/api/courses/route.ts` (GET - list all courses)
+- [x] 3.3 Create `app/api/user/courses/route.ts` (GET - user's enrolled courses)
+- [x] 3.4 Create `app/api/user/courses/[courseId]/route.ts` (POST add, DELETE remove)
+- [x] 3.5 Add Clerk auth to user routes
+- [x] 3.6 Configure cron schedule in `vercel.json`
+- [x] 3.7 Write API route tests
 
 ### Deliverables
 - `app/api/cron/sync-courses/route.ts`
@@ -170,4 +170,4 @@ Phase 5 is complete when:
 - **No `users` table** - we use Clerk IDs directly as TEXT
 - Tables go in `ai` schema (like all other Next.js tables)
 - CDCS endpoint may have rate limits - be gentle during testing
-- Course sync runs as a cron job (weekly), not user-triggered
+- Course sync runs as a cron job (monthly on the 1st), not user-triggered
