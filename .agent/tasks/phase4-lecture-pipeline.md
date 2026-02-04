@@ -207,12 +207,12 @@ const SemanticChunksSchema = z.object({
 **Goal:** Implement lecture CRUD endpoints and processing pipeline.
 
 ### Subtasks - Pipeline Orchestration
-- [ ] 5.1 Create `lib/lectures/pipeline.ts`
-- [ ] 5.2 Implement `processLecture()` - full async pipeline for audio path
-- [ ] 5.3 Implement `downloadAndProcessLecture()` - full async pipeline for stream path
-- [ ] 5.4 Implement status updates throughout pipeline
-- [ ] 5.5 Implement chunk ingestion (embed + insert to pgvector)
-- [ ] 5.6 Implement error handling and status: 'failed'
+- [x] 5.1 Create `lib/lectures/pipeline.ts`
+- [x] 5.2 Implement `processLecture()` - full async pipeline for audio path
+- [x] 5.3 Implement `downloadAndProcessLecture()` - full async pipeline for stream path
+- [x] 5.4 Implement status updates throughout pipeline
+- [x] 5.5 Implement chunk ingestion (embed + insert to pgvector)
+- [x] 5.6 Implement error handling and status: 'failed'
 
 ### Subtasks - Deduplication Logic
 - [ ] 5.7 Implement `findExistingLecture()` - query by courseId + panoptoSessionId

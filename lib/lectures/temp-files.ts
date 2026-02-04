@@ -87,3 +87,15 @@ export async function cleanupTempAudio(lectureId: string): Promise<void> {
     }
   }
 }
+
+/**
+ * Read temp audio file contents.
+ *
+ * @param lectureId - The lecture ID
+ * @returns The audio content as a Buffer
+ * @throws Error if the file doesn't exist
+ */
+export async function readTempAudio(lectureId: string): Promise<Buffer> {
+  const filePath = getTempAudioPath(lectureId);
+  return fs.readFile(filePath);
+}

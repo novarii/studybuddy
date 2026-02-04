@@ -50,7 +50,8 @@ function createMockProcess(options: {
 describe('FFmpeg Integration', () => {
   beforeEach(() => {
     mockSpawn.mockReset();
-    _setSpawn(mockSpawn as any);
+    // Type assertion needed because mock returns EventEmitter, not full ChildProcess
+    _setSpawn(mockSpawn as unknown as typeof import('child_process').spawn);
   });
 
   afterEach(() => {
