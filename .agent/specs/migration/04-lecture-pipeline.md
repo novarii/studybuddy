@@ -58,8 +58,7 @@ studybuddy-frontend/
 │   ├── route.ts                     # GET list
 │   ├── audio/route.ts               # POST: extension sends audio bytes (primary)
 │   ├── stream/route.ts              # POST: extension sends stream URL (fallback)
-│   ├── [id]/route.ts                # GET status, DELETE
-│   └── [id]/file/route.ts           # GET download audio file
+│   └── [id]/route.ts                # GET status, DELETE
 ├── lib/lectures/
 │   ├── pipeline.ts                  # Main processing orchestration
 │   ├── ffmpeg.ts                    # FFmpeg wrapper (HLS download + audio extraction)
@@ -69,13 +68,40 @@ studybuddy-frontend/
 │   │   ├── time-based.ts            # Legacy 180s approach
 │   │   └── semantic.ts              # LLM-based topic detection
 │   └── chunk-ingestion.ts           # Embedding + pgvector
-└── lib/storage/
-    └── lectures.ts                  # Audio file storage
+└── tmp/                             # Temporary audio files (deleted after processing)
 ```
+
+**Note:** Audio files are temporary - deleted after transcription completes. Only embeddings persist in pgvector.
 
 ---
 
 ## Pipeline Flow
+
+### Lecture Deduplication
+
+Lectures are deduplicated by `(courseId, panoptoSessionId)`. If two students upload the same lecture:
+
+1. First student uploads → lecture created, pipeline runs, user gets access
+2. Second student uploads → existing lecture found, user gets access (no re-processing)
+
+This is why `userLectures` is a many-to-many join table - multiple users share one lecture record.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    DEDUPLICATION CHECK                           │
+│                                                                  │
+│  1. Extract panoptoSessionId from request                       │
+│  2. Query: SELECT * FROM lectures                               │
+│            WHERE course_id = ? AND panopto_session_id = ?       │
+│  3. If exists:                                                  │
+│     - Add user-lecture link (if not already linked)             │
+│     - Return existing lecture ID (no processing)                │
+│  4. If not exists:                                              │
+│     - Create lecture record                                     │
+│     - Add user-lecture link                                     │
+│     - Start processing pipeline                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### Two Ingestion Paths
 
@@ -137,6 +163,12 @@ The browser extension handles Panopto authentication and provides two paths:
          │
          ▼
 ┌─────────────────┐
+│  Normalize      │  Remove filler words, detect garbage
+│  Transcript     │  Clean text for better embeddings
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
 │  LLM Semantic   │  generateObject() with Zod schema
 │  Chunking       │  Returns: topic chunks as text
 └────────┬────────┘
@@ -157,6 +189,12 @@ The browser extension handles Panopto authentication and provides two paths:
 ┌─────────────────┐
 │  Insert to      │  ai.lecture_chunks_knowledge
 │  pgvector       │  Metadata: lecture_id, course_id, start_seconds, end_seconds, title
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Delete Temp    │  Remove audio file from tmp/
+│  Audio File     │
 └────────┬────────┘
          │
          ▼
@@ -306,6 +344,62 @@ async function pollForResult(
   throw new Error('Transcription timeout');
 }
 ```
+
+---
+
+## Transcript Normalization
+
+Before chunking and embedding, clean the transcript to improve quality.
+
+### Problems with Raw Whisper Output
+1. **Filler words** - "okay", "um", "uh", "like", "you know", "so", "right", "alright"
+2. **Repetition/hallucination** - Whisper sometimes outputs repeated phrases when audio is unclear
+3. **Non-semantic content** - These don't help with search and can hurt embedding quality
+
+### Normalization Steps
+
+```typescript
+// lib/lectures/normalize.ts
+
+const FILLER_WORDS = [
+  'okay', 'ok', 'um', 'uh', 'uhm', 'umm', 'hmm',
+  'like', 'you know', 'i mean', 'so', 'right',
+  'alright', 'all right', 'yeah', 'yep', 'mhm',
+];
+
+// 1. Remove filler words (case-insensitive, word boundaries)
+function removeFillerWords(text: string): string {
+  let result = text;
+  for (const filler of FILLER_WORDS) {
+    const regex = new RegExp(`\\b${filler}\\b[,.]?\\s*`, 'gi');
+    result = result.replace(regex, '');
+  }
+  return result.replace(/\s+/g, ' ').trim();
+}
+
+// 2. Detect garbage (repeated phrases)
+function detectGarbage(text: string): boolean {
+  // If same phrase repeated 3+ times, likely garbage
+  const phrases = text.match(/(.{10,}?)\1{2,}/gi);
+  return phrases !== null && phrases.length > 0;
+}
+
+// 3. Normalize segment
+function normalizeSegment(segment: WhisperSegment): WhisperSegment {
+  const cleaned = removeFillerWords(segment.text);
+  const isGarbage = detectGarbage(cleaned);
+
+  return {
+    ...segment,
+    text: isGarbage ? '' : cleaned,  // Empty string for garbage segments
+  };
+}
+```
+
+### When to Apply
+- **Before semantic chunking** - LLM sees clean text
+- **Before embedding** - cleaner embeddings for RAG
+- **Preserve original timestamps** - normalization doesn't affect timing
 
 ---
 
@@ -597,10 +691,8 @@ export const lectures = pgTable('lectures', {
   panoptoUrl: text('panopto_url'),
   streamUrl: text('stream_url'),  // Video stream URL or 'audio_podcast' marker
 
-  // Content
+  // Content metadata (no file storage - only embeddings persist)
   title: text('title').notNull(),
-  audioStorageKey: text('audio_storage_key'),
-  transcriptStorageKey: text('transcript_storage_key'),
   durationSeconds: integer('duration_seconds'),
   chunkCount: integer('chunk_count'),
 
@@ -656,7 +748,8 @@ interface LectureChunkMetadata {
 | GET | `/api/lectures` | List lectures for course | Frontend |
 | GET | `/api/lectures/[id]` | Get lecture status | Frontend |
 | DELETE | `/api/lectures/[id]` | Delete lecture | Frontend |
-| GET | `/api/lectures/[id]/file` | Download audio file | Frontend |
+
+**Note:** No file download endpoint - audio is temporary and deleted after processing. Only embeddings persist.
 
 ### POST /api/lectures/audio - Primary Path
 
