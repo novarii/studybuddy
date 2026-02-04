@@ -6,6 +6,8 @@ import {
   messageSources,
   userApiKeys,
   documents,
+  lectures,
+  userLectures,
   aiSchema,
 } from '@/lib/db/schema';
 
@@ -136,6 +138,53 @@ describe('Database Schema', () => {
       const columns = Object.keys(documents);
       expect(columns).toContain('createdAt');
       expect(columns).toContain('processedAt');
+    });
+  });
+
+  describe('lectures table', () => {
+    it('should have correct table name', () => {
+      expect(getTableName(lectures)).toBe('lectures');
+    });
+
+    it('should have required columns', () => {
+      const columns = Object.keys(lectures);
+      expect(columns).toContain('id');
+      expect(columns).toContain('courseId');
+      expect(columns).toContain('panoptoSessionId');
+      expect(columns).toContain('title');
+      expect(columns).toContain('status');
+    });
+
+    it('should have Panopto-related columns', () => {
+      const columns = Object.keys(lectures);
+      expect(columns).toContain('panoptoUrl');
+      expect(columns).toContain('streamUrl');
+    });
+
+    it('should have processing metadata columns', () => {
+      const columns = Object.keys(lectures);
+      expect(columns).toContain('durationSeconds');
+      expect(columns).toContain('chunkCount');
+      expect(columns).toContain('errorMessage');
+    });
+
+    it('should have timestamp columns', () => {
+      const columns = Object.keys(lectures);
+      expect(columns).toContain('createdAt');
+      expect(columns).toContain('updatedAt');
+    });
+  });
+
+  describe('userLectures table', () => {
+    it('should have correct table name', () => {
+      expect(getTableName(userLectures)).toBe('user_lectures');
+    });
+
+    it('should have required columns', () => {
+      const columns = Object.keys(userLectures);
+      expect(columns).toContain('userId');
+      expect(columns).toContain('lectureId');
+      expect(columns).toContain('createdAt');
     });
   });
 });
