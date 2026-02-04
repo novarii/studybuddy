@@ -4,14 +4,14 @@
 
 ## Current Status
 
-**Next task:** Task 5.7 - Implement `findExistingLecture()`
+**Next task:** Task 5.8 - Implement deduplication flow
 
 **Recent fixes:**
 - Created missing migration for `ai.lecture_chunks_knowledge` table (was referenced by pipeline but never created)
 - Migration file: `drizzle/migrations/0005_lecture_chunks_knowledge.sql`
 - Added to `meta/_journal.json` and applied to database
 
-**Tasks 1-4 complete.** Task 5 (API Routes & Pipeline) is in progress - subtasks 5.1-5.6 done, starting 5.7.
+**Tasks 1-4 complete.** Task 5 (API Routes & Pipeline) is in progress - subtasks 5.1-5.7 done, starting 5.8.
 
 ---
 
@@ -228,7 +228,7 @@ const SemanticChunksSchema = z.object({
 - [x] 5.6 Implement error handling and status: 'failed'
 
 ### Subtasks - Deduplication Logic
-- [ ] 5.7 Implement `findExistingLecture()` - query by courseId + panoptoSessionId
+- [x] 5.7 Implement `findExistingLecture()` - query by courseId + panoptoSessionId
 - [ ] 5.8 Implement deduplication flow:
   - If lecture exists: add user-lecture link, return existing ID (skip processing)
   - If not exists: create lecture, add link, start processing
