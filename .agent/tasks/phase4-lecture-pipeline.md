@@ -129,12 +129,12 @@ interface TranscriptionResult {
 **Goal:** Implement audio extraction from HLS streams and video files.
 
 ### Subtasks
-- [ ] 3.1 Create `lib/lectures/ffmpeg.ts`
-- [ ] 3.2 Implement `downloadAndExtractAudio()` - HLS URL → audio file
-- [ ] 3.3 Implement `extractAudioFromFile()` - local video → audio file
-- [ ] 3.4 Implement `probeDuration()` - get audio duration via ffprobe
-- [ ] 3.5 Handle FFmpeg errors with descriptive messages
-- [ ] 3.6 Write unit tests (mock child_process spawn)
+- [x] 3.1 Create `lib/lectures/ffmpeg.ts`
+- [x] 3.2 Implement `downloadAndExtractAudio()` - HLS URL → audio file
+- [x] 3.3 Implement `extractAudioFromFile()` - local video → audio file
+- [x] 3.4 Implement `probeDuration()` - get audio duration via ffprobe
+- [x] 3.5 Handle FFmpeg errors with descriptive messages
+- [x] 3.6 Write unit tests (mock child_process spawn)
 
 ### Implementation Notes
 ```typescript
