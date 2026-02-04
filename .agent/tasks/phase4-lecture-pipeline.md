@@ -22,8 +22,8 @@
 ### Subtasks - Database Schema
 - [x] 1.1 Add `lectures` table to `lib/db/schema.ts`
 - [x] 1.2 Add `userLectures` join table to `lib/db/schema.ts`
-- [ ] 1.3 Generate migration with `drizzle-kit generate`
-- [ ] 1.4 Run migration against dev database
+- [x] 1.3 Generate migration with `drizzle-kit generate`
+- [ ] 1.4 Run migration against dev database (requires DB access: `pnpm drizzle-kit migrate`)
 - [ ] 1.5 Verify tables created with unique constraint on (courseId, panoptoSessionId)
 - [x] 1.6 Export `lectures`, `userLectures` from `lib/db/index.ts`
 
