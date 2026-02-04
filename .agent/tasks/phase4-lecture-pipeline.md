@@ -4,14 +4,14 @@
 
 ## Current Status
 
-**Next task:** Task 5.8 - Implement deduplication flow
+**Next task:** Task 6 - Testing & Validation
 
 **Recent fixes:**
 - Created missing migration for `ai.lecture_chunks_knowledge` table (was referenced by pipeline but never created)
 - Migration file: `drizzle/migrations/0005_lecture_chunks_knowledge.sql`
 - Added to `meta/_journal.json` and applied to database
 
-**Tasks 1-4 complete.** Task 5 (API Routes & Pipeline) is in progress - subtasks 5.1-5.7 done, starting 5.8.
+**Tasks 1-5 complete.** All API routes and pipeline components implemented. Ready for Task 6 (Testing & Validation).
 
 ---
 
@@ -229,33 +229,33 @@ const SemanticChunksSchema = z.object({
 
 ### Subtasks - Deduplication Logic
 - [x] 5.7 Implement `findExistingLecture()` - query by courseId + panoptoSessionId
-- [ ] 5.8 Implement deduplication flow:
+- [x] 5.8 Implement deduplication flow:
   - If lecture exists: add user-lecture link, return existing ID (skip processing)
   - If not exists: create lecture, add link, start processing
 
 ### Subtasks - Audio Endpoint (Primary Path)
-- [ ] 5.9 Create `app/api/lectures/audio/route.ts`
-- [ ] 5.10 Implement multipart form-data parsing
-- [ ] 5.11 Call deduplication logic before processing
-- [ ] 5.12 Store temp audio and trigger async processing (only if new)
-- [ ] 5.13 Return 202 Accepted with lecture ID (+ `created: boolean` flag)
+- [x] 5.9 Create `app/api/lectures/audio/route.ts`
+- [x] 5.10 Implement multipart form-data parsing
+- [x] 5.11 Call deduplication logic before processing
+- [x] 5.12 Store temp audio and trigger async processing (only if new)
+- [x] 5.13 Return 202 Accepted with lecture ID (+ `created: boolean` flag)
 
 ### Subtasks - Stream Endpoint (Fallback Path)
-- [ ] 5.14 Create `app/api/lectures/stream/route.ts`
-- [ ] 5.15 Implement JSON body parsing
-- [ ] 5.16 Extract panoptoSessionId from URL
-- [ ] 5.17 Call deduplication logic before processing
-- [ ] 5.18 Trigger async download + processing pipeline (only if new)
+- [x] 5.14 Create `app/api/lectures/stream/route.ts`
+- [x] 5.15 Implement JSON body parsing
+- [x] 5.16 Extract panoptoSessionId from URL
+- [x] 5.17 Call deduplication logic before processing
+- [x] 5.18 Trigger async download + processing pipeline (only if new)
 
 ### Subtasks - List/Status/Delete
-- [ ] 5.19 Create `app/api/lectures/route.ts` (GET list by courseId)
-- [ ] 5.20 Create `app/api/lectures/[id]/route.ts` (GET status, DELETE)
-- [ ] 5.21 Add Clerk auth checks to all endpoints
-- [ ] 5.22 Add user-lecture ownership verification
+- [x] 5.19 Create `app/api/lectures/route.ts` (GET list by courseId)
+- [x] 5.20 Create `app/api/lectures/[id]/route.ts` (GET status, DELETE)
+- [x] 5.21 Add Clerk auth checks to all endpoints
+- [x] 5.22 Add user-lecture ownership verification
 
 ### Subtasks - Helper Functions
-- [ ] 5.23 Implement `extractPanoptoSessionId()` - parse session ID from URL
-- [ ] 5.24 Implement `ensureUserLectureLink()` - create user-lecture association (idempotent)
+- [x] 5.23 Implement `extractPanoptoSessionId()` - parse session ID from URL
+- [x] 5.24 Implement `ensureUserLectureLink()` - create user-lecture association (idempotent)
 
 ### Deliverables
 - `lib/lectures/pipeline.ts`
