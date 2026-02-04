@@ -60,14 +60,14 @@ export const userCourses = aiSchema.table('user_courses', {
 **Goal:** Port CDCS scraper from Python to TypeScript.
 
 ### Subtasks
-- [ ] 2.1 Create `lib/courses/sync-service.ts`
-- [ ] 2.2 Implement `fetchCoursesFromCdcs(term: string)` - fetch XML from CDCS
-- [ ] 2.3 Implement XML parsing (course code, title, instructor)
-- [ ] 2.4 Implement section deduplication regex (`-1`, `-01`, `-FA.MB` → stripped)
-- [ ] 2.5 Implement instructor merging across sections
-- [ ] 2.6 Implement `syncCourses(terms, options)` - full upsert logic
-- [ ] 2.7 Implement stale course deletion with 80% safety threshold
-- [ ] 2.8 Write unit tests with mocked XML responses
+- [x] 2.1 Create `lib/courses/sync-service.ts`
+- [x] 2.2 Implement `fetchCoursesFromCdcs(term: string)` - fetch XML from CDCS
+- [x] 2.3 Implement XML parsing (course code, title, instructor)
+- [x] 2.4 Implement section deduplication regex (`-1`, `-01`, `-FA.MB` → stripped)
+- [x] 2.5 Implement instructor merging across sections
+- [x] 2.6 Implement `syncCourses(terms, options)` - full upsert logic
+- [x] 2.7 Implement stale course deletion with 80% safety threshold
+- [x] 2.8 Write unit tests with mocked XML responses
 
 ### CDCS Endpoint
 ```
