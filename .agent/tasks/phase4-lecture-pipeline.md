@@ -20,12 +20,12 @@
 **Goal:** Add database schema, storage utilities, and environment configuration.
 
 ### Subtasks - Database Schema
-- [ ] 1.1 Add `lectures` table to `lib/db/schema.ts`
-- [ ] 1.2 Add `userLectures` join table to `lib/db/schema.ts`
+- [x] 1.1 Add `lectures` table to `lib/db/schema.ts`
+- [x] 1.2 Add `userLectures` join table to `lib/db/schema.ts`
 - [ ] 1.3 Generate migration with `drizzle-kit generate`
 - [ ] 1.4 Run migration against dev database
 - [ ] 1.5 Verify tables created with unique constraint on (courseId, panoptoSessionId)
-- [ ] 1.6 Export `lectures`, `userLectures` from `lib/db/index.ts`
+- [x] 1.6 Export `lectures`, `userLectures` from `lib/db/index.ts`
 
 ### Schema Definition
 ```typescript
@@ -59,10 +59,10 @@ export const userLectures = pgTable('user_lectures', {
 **Note:** No file storage columns - audio is temporary, only embeddings persist in pgvector.
 
 ### Subtasks - Temp File Handling
-- [ ] 1.7 Create `lib/lectures/temp-files.ts` with temp file utilities
-- [ ] 1.8 Implement `saveTempAudio()` - save audio to tmp/ directory
-- [ ] 1.9 Implement `cleanupTempAudio()` - delete temp files after processing
-- [ ] 1.10 Ensure tmp/ directory exists on startup
+- [x] 1.7 Create `lib/lectures/temp-files.ts` with temp file utilities
+- [x] 1.8 Implement `saveTempAudio()` - save audio to tmp/ directory
+- [x] 1.9 Implement `cleanupTempAudio()` - delete temp files after processing
+- [x] 1.10 Ensure tmp/ directory exists on startup
 
 ### Environment Variables
 ```bash
