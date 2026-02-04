@@ -82,13 +82,13 @@ RUNPOD_ENDPOINT_ID=xxx
 **Goal:** Implement async transcription via RunPod faster-whisper worker.
 
 ### Subtasks
-- [ ] 2.1 Create `lib/lectures/runpod-client.ts`
-- [ ] 2.2 Implement `submitTranscriptionJob()` - POST to RunPod /run endpoint
-- [ ] 2.3 Implement `pollForResult()` - GET /status/{jobId} with retry loop
-- [ ] 2.4 Implement `transcribeAudio()` - high-level function combining submit + poll
-- [ ] 2.5 Define `WhisperSegment` and `TranscriptionResult` types
-- [ ] 2.6 Handle RunPod error responses (FAILED status, timeouts)
-- [ ] 2.7 Write unit tests with mocked RunPod responses
+- [x] 2.1 Create `lib/lectures/runpod-client.ts`
+- [x] 2.2 Implement `submitTranscriptionJob()` - POST to RunPod /run endpoint
+- [x] 2.3 Implement `pollForResult()` - GET /status/{jobId} with retry loop
+- [x] 2.4 Implement `transcribeAudio()` - high-level function combining submit + poll
+- [x] 2.5 Define `WhisperSegment` and `TranscriptionResult` types
+- [x] 2.6 Handle RunPod error responses (FAILED status, timeouts)
+- [x] 2.7 Write unit tests with mocked RunPod responses
 
 ### API Configuration
 ```typescript
