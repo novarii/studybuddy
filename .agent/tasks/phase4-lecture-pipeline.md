@@ -153,31 +153,31 @@ ffmpeg -i "https://cloudfront.../master.m3u8?signed" -vn -acodec aac output.m4a
 **Goal:** Clean transcript and implement LLM-based topic detection.
 
 ### Subtasks - Transcript Normalization
-- [ ] 4.1 Create `lib/lectures/normalize.ts`
-- [ ] 4.2 Define `FILLER_WORDS` list (okay, um, uh, like, you know, etc.)
-- [ ] 4.3 Implement `removeFillerWords()` - regex-based removal
-- [ ] 4.4 Implement `detectGarbage()` - detect repeated phrases (hallucinations)
-- [ ] 4.5 Implement `normalizeTranscript()` - clean all segments
-- [ ] 4.6 Write unit tests for normalization edge cases
+- [x] 4.1 Create `lib/lectures/normalize.ts`
+- [x] 4.2 Define `FILLER_WORDS` list (okay, um, uh, like, you know, etc.)
+- [x] 4.3 Implement `removeFillerWords()` - regex-based removal
+- [x] 4.4 Implement `detectGarbage()` - detect repeated phrases (hallucinations)
+- [x] 4.5 Implement `normalizeTranscript()` - clean all segments
+- [x] 4.6 Write unit tests for normalization edge cases
 
 ### Subtasks - Time-Based (Fallback)
-- [ ] 4.7 Create `lib/lectures/chunking/time-based.ts`
-- [ ] 4.8 Implement `chunkByTime()` - group segments into ~180s chunks
-- [ ] 4.9 Preserve start/end timestamps from Whisper segments
+- [x] 4.7 Create `lib/lectures/chunking/time-based.ts`
+- [x] 4.8 Implement `chunkByTime()` - group segments into ~180s chunks
+- [x] 4.9 Preserve start/end timestamps from Whisper segments
 
 ### Subtasks - Semantic (Primary)
-- [ ] 4.10 Create `lib/lectures/chunking/semantic.ts`
-- [ ] 4.11 Define Zod schema for LLM output (`SemanticChunksSchema`)
-- [ ] 4.12 Implement `detectTopicBoundaries()` - call LLM with generateObject()
-- [ ] 4.13 Implement `matchChunksToTimestamps()` - fuzzy match LLM text → Whisper segments
-- [ ] 4.14 Add BYOK integration (get user's API key for LLM call)
+- [x] 4.10 Create `lib/lectures/chunking/semantic.ts`
+- [x] 4.11 Define Zod schema for LLM output (`SemanticChunksSchema`)
+- [x] 4.12 Implement `detectTopicBoundaries()` - call LLM with generateObject()
+- [x] 4.13 Implement `matchChunksToTimestamps()` - fuzzy match LLM text → Whisper segments
+- [x] 4.14 Add BYOK integration (get user's API key for LLM call)
 
 ### Subtasks - Strategy Selector
-- [ ] 4.15 Create `lib/lectures/chunking/index.ts`
-- [ ] 4.16 Implement `chunkTranscript()` - normalize → try semantic → fallback to time-based
-- [ ] 4.17 Write unit tests for time-based chunking
-- [ ] 4.18 Write unit tests for semantic chunking (mock LLM)
-- [ ] 4.19 Write unit tests for timestamp matching
+- [x] 4.15 Create `lib/lectures/chunking/index.ts`
+- [x] 4.16 Implement `chunkTranscript()` - normalize → try semantic → fallback to time-based
+- [x] 4.17 Write unit tests for time-based chunking
+- [x] 4.18 Write unit tests for semantic chunking (mock LLM)
+- [x] 4.19 Write unit tests for timestamp matching
 
 ### Zod Schema
 ```typescript
