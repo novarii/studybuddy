@@ -103,8 +103,14 @@ describe('processPages', () => {
 
     (extractPageContent as Mock)
       .mockResolvedValueOnce('Content 0')
+      // Page 1 fails all attempts (MAX_RETRIES + 1 = 4 total)
       .mockRejectedValueOnce(new Error('API error'))
-      .mockRejectedValueOnce(new Error('API error')); // For retry
+      .mockRejectedValueOnce(new Error('API error'))
+      .mockRejectedValueOnce(new Error('API error'))
+      .mockRejectedValueOnce(new Error('API error'));
+
+    // Suppress console.error for this test
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const promise = processPages(pages, mockApiKey);
     await vi.runAllTimersAsync();
@@ -114,6 +120,8 @@ describe('processPages', () => {
     expect(results[1].success).toBe(false);
     expect(results[1].content).toBeNull();
     expect(results[1].error).toBeDefined();
+
+    consoleSpy.mockRestore();
   });
 
   it('should pass correct API key to extractPageContent', async () => {
@@ -154,7 +162,7 @@ describe('processPages', () => {
 
   it('should export correct constants', () => {
     expect(CONCURRENCY_LIMIT).toBe(5);
-    expect(MAX_RETRIES).toBe(1);
+    expect(MAX_RETRIES).toBe(3);
   });
 });
 
@@ -227,15 +235,11 @@ describe('processPageWithRetry', () => {
 
     const promise = processPageWithRetry(mockPageBytes, 0, mockApiKey);
 
-    // First call happens immediately
-    expect(extractPageContent).toHaveBeenCalledTimes(1);
-
-    // Advance time for retry delay
-    await vi.advanceTimersByTimeAsync(1000);
-
+    // Run all timers to completion
+    await vi.runAllTimersAsync();
     await promise;
 
-    // Second call should happen after delay
+    // Should have been called twice: initial + 1 retry
     expect(extractPageContent).toHaveBeenCalledTimes(2);
   });
 
