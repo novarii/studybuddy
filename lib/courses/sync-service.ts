@@ -7,6 +7,7 @@
 
 import { db, courses } from '@/lib/db';
 import { inArray } from 'drizzle-orm';
+import { JSDOM } from 'jsdom';
 import {
   CdcsCourse,
   SyncResult,
@@ -37,9 +38,9 @@ export function stripSectionSuffix(rawCode: string): string {
  * @returns Array of parsed courses with section suffixes stripped
  */
 export function parseXmlCourses(xmlString: string): CdcsCourse[] {
-  // Use DOMParser for XML parsing (available in Node.js via jsdom in tests)
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xmlString, 'text/xml');
+  // Use JSDOM for XML parsing in Node.js environment
+  const dom = new JSDOM(xmlString, { contentType: 'text/xml' });
+  const doc = dom.window.document;
 
   // Check for parse errors
   const parseError = doc.querySelector('parsererror');
