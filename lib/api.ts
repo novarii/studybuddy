@@ -136,30 +136,66 @@ export const api = {
   courses: {
     /**
      * List all available courses (official CDCS courses)
+     * Uses local API route
      */
-    listAll: (token: string) =>
-      fetchWithAuth<Course[]>("/courses", { token }),
+    listAll: async (token: string): Promise<Course[]> => {
+      const response = await fetchLocal<{
+        courses: Array<{
+          id: string;
+          code: string;
+          title: string;
+          instructor: string | null;
+          isOfficial: boolean;
+        }>;
+      }>("/api/courses", { token });
+
+      return response.courses.map((c) => ({
+        id: c.id,
+        code: c.code,
+        title: c.title,
+        instructor: c.instructor,
+      }));
+    },
 
     /**
      * List courses the current user has added
+     * Uses local API route
      */
-    listUserCourses: (token: string) =>
-      fetchWithAuth<Course[]>("/user/courses", { token }),
+    listUserCourses: async (token: string): Promise<Course[]> => {
+      const response = await fetchLocal<{
+        courses: Array<{
+          id: string;
+          code: string;
+          title: string;
+          instructor: string | null;
+          isOfficial: boolean;
+        }>;
+      }>("/api/user/courses", { token });
+
+      return response.courses.map((c) => ({
+        id: c.id,
+        code: c.code,
+        title: c.title,
+        instructor: c.instructor,
+      }));
+    },
 
     /**
      * Add a course to the current user's list
+     * Uses local API route
      */
     addToUser: (token: string, courseId: string) =>
-      fetchWithAuth<{ message: string }>(`/user/courses/${courseId}`, {
+      fetchLocal<{ message: string }>(`/api/user/courses/${courseId}`, {
         token,
         method: "POST",
       }),
 
     /**
      * Remove a course from the current user's list
+     * Uses local API route
      */
     removeFromUser: (token: string, courseId: string) =>
-      fetchWithAuth<void>(`/user/courses/${courseId}`, {
+      fetchLocal<void>(`/api/user/courses/${courseId}`, {
         token,
         method: "DELETE",
       }),

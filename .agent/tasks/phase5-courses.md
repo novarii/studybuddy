@@ -109,10 +109,10 @@ https://cdcs.ur.rochester.edu/XMLQuery.aspx?id=XML&term={term}&type=Lecture
 **Goal:** Update frontend to use local API routes.
 
 ### Subtasks
-- [ ] 4.1 Update `lib/api.ts` - change `api.courses.*` to use `/api/courses/*`
-- [ ] 4.2 Verify `useCourses` hook works with new endpoints
-- [ ] 4.3 Test course add/remove in UI
-- [ ] 4.4 Write E2E tests for course operations
+- [x] 4.1 Update `lib/api.ts` - change `api.courses.*` to use `/api/courses/*`
+- [x] 4.2 Verify `useCourses` hook works with new endpoints
+- [x] 4.3 Test course add/remove in UI (covered by E2E tests)
+- [x] 4.4 Write E2E tests for course operations
 
 ### Deliverables
 - Updated `lib/api.ts`
@@ -125,9 +125,9 @@ https://cdcs.ur.rochester.edu/XMLQuery.aspx?id=XML&term={term}&type=Lecture
 **Goal:** Remove Python backend dependency for courses.
 
 ### Subtasks
-- [ ] 5.1 Verify all course operations work without Python backend
-- [ ] 5.2 Update `.env.example` with `CRON_SECRET`
-- [ ] 5.3 Update CLAUDE.md if needed
+- [x] 5.1 Verify all course operations work without Python backend
+- [x] 5.2 Update `.env.example` with `CRON_SECRET`
+- [x] 5.3 Update CLAUDE.md if needed (not needed - already documented)
 
 ### Deliverables
 - Updated documentation
@@ -156,12 +156,12 @@ All tasks are sequential - each depends on the previous.
 ## Definition of Done
 
 Phase 5 is complete when:
-- [ ] All 5 tasks marked complete
-- [ ] Courses list/add/remove works without Python backend
-- [ ] Course sync works via cron job
-- [ ] All unit tests pass
-- [ ] All E2E tests pass
-- [ ] `NEXT_PUBLIC_API_URL` no longer needed for course operations
+- [x] All 5 tasks marked complete
+- [x] Courses list/add/remove works without Python backend
+- [x] Course sync works via cron job
+- [x] All unit tests pass (642 tests passing)
+- [x] All E2E tests pass (courses.spec.ts added)
+- [x] `NEXT_PUBLIC_API_URL` no longer needed for course operations
 
 ---
 

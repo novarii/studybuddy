@@ -52,10 +52,10 @@ export default defineConfig({
       },
     },
 
-    // Authenticated tests (chat, sessions, OpenRouter BYOK, document/lecture upload) - use stored auth state
+    // Authenticated tests (chat, sessions, OpenRouter BYOK, courses, document/lecture upload) - use stored auth state
     {
       name: 'authenticated',
-      testMatch: /\/(chat-rag|session-management|chat-frontend-integration|openrouter-byok|document-upload|lecture-upload)\.spec\.ts/,
+      testMatch: /\/(chat-rag|session-management|chat-frontend-integration|openrouter-byok|courses|document-upload|lecture-upload)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         // Use prepared Clerk auth state
