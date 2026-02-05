@@ -11,42 +11,47 @@ type VideoSectionProps = {
   isCollapsed: boolean;
   colors: ColorScheme;
   hasVideos: boolean;
-  panoptoSessionId: string | null;
+  panoptoUrl: string | null;
   startSeconds: number;
   onToggle: () => void;
 };
 
 /**
- * Build Panopto embed URL with optional start time.
+ * Build Panopto embed URL from source URL with optional start time.
+ * Converts Viewer.aspx URL to Embed.aspx URL and adds embed parameters.
  */
-function buildPanoptoEmbedUrl(sessionId: string, startSeconds: number): string {
-  const params = new URLSearchParams({
-    id: sessionId,
-    autoplay: startSeconds > 0 ? "true" : "false",
-    offerviewer: "true",
-    showtitle: "true",
-    showbrand: "true",
-    captions: "false",
-    interactivity: "all",
-  });
+function buildPanoptoEmbedUrl(sourceUrl: string, startSeconds: number): string {
+  // Convert Viewer.aspx to Embed.aspx
+  let embedUrl = sourceUrl.replace('/Pages/Viewer.aspx', '/Pages/Embed.aspx');
+
+  // Parse existing URL to modify parameters
+  const url = new URL(embedUrl);
+
+  // Add embed parameters
+  url.searchParams.set('autoplay', startSeconds > 0 ? 'true' : 'false');
+  url.searchParams.set('offerviewer', 'true');
+  url.searchParams.set('showtitle', 'true');
+  url.searchParams.set('showbrand', 'true');
+  url.searchParams.set('captions', 'false');
+  url.searchParams.set('interactivity', 'all');
 
   if (startSeconds > 0) {
-    params.set("start", String(Math.floor(startSeconds)));
+    url.searchParams.set('start', String(Math.floor(startSeconds)));
   }
 
-  return `https://rochester.hosted.panopto.com/Panopto/Pages/Embed.aspx?${params.toString()}`;
+  return url.toString();
 }
 
 export const VideoSection: React.FC<VideoSectionProps> = ({
   isCollapsed,
   colors,
   hasVideos,
-  panoptoSessionId,
+  panoptoUrl,
   startSeconds,
   onToggle,
 }) => {
-  // Generate a unique key to force iframe reload when session or timestamp changes
-  const iframeKey = panoptoSessionId ? `${panoptoSessionId}-${startSeconds}` : null;
+  // Generate a unique key to force iframe reload when URL or timestamp changes
+  const iframeKey = panoptoUrl ? `${panoptoUrl}-${startSeconds}` : null;
 
   return (
     <section
@@ -68,12 +73,12 @@ export const VideoSection: React.FC<VideoSectionProps> = ({
       {!isCollapsed && (
         <div className="flex-1 p-4 flex flex-col overflow-hidden">
           <Card className="overflow-hidden flex-1 flex flex-col items-center justify-center" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-            {panoptoSessionId ? (
+            {panoptoUrl ? (
               <CardContent className="p-0 flex-1 flex flex-col overflow-hidden w-full">
                 <div className="relative flex-1 bg-black overflow-hidden">
                   <iframe
                     key={iframeKey}
-                    src={buildPanoptoEmbedUrl(panoptoSessionId, startSeconds)}
+                    src={buildPanoptoEmbedUrl(panoptoUrl, startSeconds)}
                     className="absolute inset-0 w-full h-full border-0"
                     allow="autoplay; fullscreen"
                     allowFullScreen

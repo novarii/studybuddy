@@ -83,7 +83,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               isCollapsed={isVideoCollapsed}
               colors={colors}
               hasVideos={hasVideoMaterials}
-              panoptoSessionId={selectedLecture?.panopto_session_id ?? null}
+              panoptoUrl={selectedLecture?.panopto_url ?? null}
               startSeconds={lectureTimestamp}
               onToggle={onToggleVideo}
             />

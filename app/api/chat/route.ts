@@ -5,6 +5,8 @@ import {
   tool,
   convertToModelMessages,
   stepCountIs,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
   type UIMessage,
 } from 'ai';
 import { z } from 'zod';
@@ -101,96 +103,110 @@ export async function POST(req: Request) {
     apiKey,
   });
 
-  const result = streamText({
-    model: openrouter.chat('x-ai/grok-4.1-fast'),
-    system: SYSTEM_PROMPT,
-    messages: await convertToModelMessages(messages),
-    tools: {
-      search_course_materials: tool({
-        description:
-          'Search lecture transcripts and slide content for relevant information about course topics',
-        inputSchema: z.object({
-          query: z
-            .string()
-            .describe('The search query to find relevant course materials'),
-        }),
-        execute: async ({ query }) => {
-          const { context, sources } = await searchKnowledge({
-            query,
-            userId,
-            courseId,
-            documentId,
-            lectureId,
-          });
-          collectedSources = sources;
-          return context;
+  // Convert messages once, outside the stream
+  const modelMessages = await convertToModelMessages(messages);
+
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      const result = streamText({
+        model: openrouter.chat('x-ai/grok-4.1-fast'),
+        system: SYSTEM_PROMPT,
+        messages: modelMessages,
+        tools: {
+          search_course_materials: tool({
+            description:
+              'Search lecture transcripts and slide content for relevant information about course topics',
+            inputSchema: z.object({
+              query: z
+                .string()
+                .describe('The search query to find relevant course materials'),
+            }),
+            execute: async ({ query }) => {
+              const { context, sources } = await searchKnowledge({
+                query,
+                userId,
+                courseId,
+                documentId,
+                lectureId,
+              });
+              collectedSources = sources;
+
+              // Stream sources to frontend immediately after RAG retrieval
+              for (const source of sources) {
+                writer.write({
+                  type: 'data-rag-source',
+                  data: source,
+                });
+              }
+
+              return context;
+            },
+          }),
         },
-      }),
-    },
-    stopWhen: stepCountIs(3),
-    onFinish: async ({ response }) => {
-      // Extract text content from all assistant messages
-      const assistantContent = response.messages
-        .filter((m) => m.role === 'assistant')
-        .map((m) => {
-          // Content can be a string or an array of parts
-          if (typeof m.content === 'string') {
-            return m.content;
-          }
-          return m.content
-            .filter(
-              (c): c is { type: 'text'; text: string } =>
-                typeof c === 'object' && c.type === 'text'
-            )
-            .map((c) => c.text)
+        stopWhen: stepCountIs(3),
+        onFinish: async ({ response }) => {
+          // Extract text content from all assistant messages
+          const assistantContent = response.messages
+            .filter((m) => m.role === 'assistant')
+            .map((m) => {
+              // Content can be a string or an array of parts
+              if (typeof m.content === 'string') {
+                return m.content;
+              }
+              return m.content
+                .filter(
+                  (c): c is { type: 'text'; text: string } =>
+                    typeof c === 'object' && c.type === 'text'
+                )
+                .map((c) => c.text)
+                .join('');
+            })
             .join('');
-        })
-        .join('');
 
-      // Save assistant message to database
-      const [savedAssistantMsg] = await db
-        .insert(chatMessages)
-        .values({
-          sessionId,
-          role: 'assistant',
-          content: assistantContent,
-        })
-        .returning();
+          // Save assistant message to database
+          const [savedAssistantMsg] = await db
+            .insert(chatMessages)
+            .values({
+              sessionId,
+              role: 'assistant',
+              content: assistantContent,
+            })
+            .returning();
 
-      // Save sources if any were collected
-      if (collectedSources.length > 0 && savedAssistantMsg) {
-        await db.insert(messageSources).values(
-          collectedSources.map((source) => ({
-            messageId: savedAssistantMsg.id,
-            sessionId,
-            sourceId: source.source_id,
-            sourceType: source.source_type,
-            chunkNumber: source.chunk_number,
-            contentPreview: source.content_preview,
-            documentId: source.document_id,
-            slideNumber: source.slide_number,
-            lectureId: source.lecture_id,
-            startSeconds: source.start_seconds,
-            endSeconds: source.end_seconds,
-            courseId: source.course_id,
-            ownerId: userId,
-            title: source.title,
-          }))
-        );
-      }
+          // Save sources if any were collected
+          if (collectedSources.length > 0 && savedAssistantMsg) {
+            await db.insert(messageSources).values(
+              collectedSources.map((source) => ({
+                messageId: savedAssistantMsg.id,
+                sessionId,
+                sourceId: source.source_id,
+                sourceType: source.source_type,
+                chunkNumber: source.chunk_number,
+                contentPreview: source.content_preview,
+                documentId: source.document_id,
+                slideNumber: source.slide_number,
+                lectureId: source.lecture_id,
+                startSeconds: source.start_seconds,
+                endSeconds: source.end_seconds,
+                courseId: source.course_id,
+                ownerId: userId,
+                title: source.title,
+              }))
+            );
+          }
 
-      // Update session timestamp
-      await db
-        .update(chatSessions)
-        .set({ updatedAt: new Date() })
-        .where(eq(chatSessions.id, sessionId));
+          // Update session timestamp
+          await db
+            .update(chatSessions)
+            .set({ updatedAt: new Date() })
+            .where(eq(chatSessions.id, sessionId));
+        },
+      });
+
+      // Merge the LLM stream into the UI message stream
+      writer.merge(result.toUIMessageStream());
     },
   });
 
-  // Consume stream to ensure it completes even if client disconnects
-  result.consumeStream();
-
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages,
-  });
+  return createUIMessageStreamResponse({ stream });
 }
