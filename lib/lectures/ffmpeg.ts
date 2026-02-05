@@ -11,6 +11,13 @@
 
 import { spawn as nodeSpawn } from 'child_process';
 import type { ChildProcess } from 'child_process';
+import pLimit from 'p-limit';
+
+/**
+ * Concurrency limiter for FFmpeg downloads.
+ * Allows up to 4 concurrent FFmpeg processes.
+ */
+const ffmpegLimit = pLimit(4);
 
 /**
  * Type for spawn function - allows injection for testing.
@@ -185,10 +192,10 @@ export async function extractAudioFromFile(
  * 1. Parse the .m3u8 playlist
  * 2. Download all .ts segments
  * 3. Handle any AES encryption
- * 4. Extract and encode audio as AAC
+ * 4. Copy audio stream without re-encoding (fast!)
  *
- * This is used for the fallback path when the browser extension
- * provides a stream URL instead of direct audio bytes.
+ * Uses optimized flags for faster startup and audio-only extraction.
+ * Concurrency is limited to 4 simultaneous downloads via p-limit.
  *
  * @param streamUrl - HLS stream URL (e.g., CloudFront pre-signed URL ending in .m3u8)
  * @param outputPath - Path where the audio file will be saved
@@ -208,13 +215,28 @@ export async function downloadAndExtractAudio(
   streamUrl: string,
   outputPath: string
 ): Promise<FFmpegResult> {
+  return ffmpegLimit(() => _downloadAndExtractAudio(streamUrl, outputPath));
+}
+
+/**
+ * Internal implementation of audio extraction (without concurrency limiting).
+ * @internal
+ */
+async function _downloadAndExtractAudio(
+  streamUrl: string,
+  outputPath: string
+): Promise<FFmpegResult> {
   return new Promise((resolve, reject) => {
     const ffmpeg = _spawn('ffmpeg', [
-      '-y',              // Overwrite output file if exists
-      '-i', streamUrl,   // HLS URL - FFmpeg handles .m3u8 natively
-      '-vn',             // No video
-      '-acodec', 'aac',  // Audio codec
-      '-b:a', '128k',    // Audio bitrate
+      '-analyzeduration', '0',  // Skip duration analysis (faster startup)
+      '-probesize', '32',       // Minimal probe size (faster startup)
+      '-i', streamUrl,          // HLS URL - FFmpeg handles .m3u8 natively
+      '-map', '0:a:0',          // Select first audio stream
+      '-ar', '16000',           // 16kHz sample rate (Groq recommendation)
+      '-ac', '1',               // Mono (Groq recommendation)
+      '-c:a', 'libmp3lame',     // MP3 codec (much smaller than FLAC)
+      '-b:a', '32k',            // 32kbps is plenty for speech (Whisper handles it fine)
+      '-y',                     // Overwrite output file if exists
       outputPath,
     ]);
 

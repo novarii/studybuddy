@@ -2,7 +2,7 @@
  * Lecture processing pipeline orchestration.
  *
  * This module coordinates the full lecture processing workflow:
- * 1. Transcription via RunPod (faster-whisper)
+ * 1. Transcription via Groq (whisper-large-v3-turbo, serverless)
  * 2. Transcript normalization (remove fillers, detect garbage)
  * 3. Semantic chunking (LLM-based topic detection)
  * 4. Chunk embedding and pgvector ingestion
@@ -14,11 +14,12 @@ import { eq, sql } from 'drizzle-orm';
 import { db, lectures } from '@/lib/db';
 import { embedBatch } from '@/lib/ai/embeddings';
 import { getUserApiKey } from '@/lib/api-keys/get-user-api-key';
-import { transcribeAudio } from './runpod-client';
+import { transcribeAudio } from './groq-client';
 import { normalizeTranscript } from './normalize';
 import { chunkTranscript, type TimestampedChunk } from './chunking';
-import { getTempAudioPath, cleanupTempAudio, readTempAudio } from './temp-files';
+import { getTempAudioPath, cleanupTempAudio } from './temp-files';
 import { downloadAndExtractAudio } from './ffmpeg';
+
 
 /**
  * Lecture status values for the pipeline.
@@ -149,8 +150,8 @@ export async function ingestChunks(
  * This is the primary path used when the browser extension sends audio bytes.
  *
  * Pipeline steps:
- * 1. Read audio file and convert to base64
- * 2. Transcribe via RunPod faster-whisper
+ * 1. Serve audio via URL for Groq to fetch
+ * 2. Transcribe via Groq whisper-large-v3-turbo (serverless, 216x real-time)
  * 3. Normalize transcript (remove fillers, detect garbage)
  * 4. Chunk transcript (semantic or time-based fallback)
  * 5. Generate embeddings and insert to pgvector
@@ -173,12 +174,11 @@ export async function processLecture(
     // Update status to transcribing
     await updateLectureStatus(lectureId, { status: 'transcribing' });
 
-    // Read audio file and convert to base64
-    const audioBuffer = await readTempAudio(lectureId);
-    const audioBase64 = audioBuffer.toString('base64');
+    // Get the local audio file path
+    const audioPath = getTempAudioPath(lectureId);
 
-    // Transcribe audio via RunPod
-    const transcriptionResult = await transcribeAudio(audioBase64);
+    // Transcribe audio via Groq (direct upload, ~17sec for 1hr lecture)
+    const transcriptionResult = await transcribeAudio(audioPath);
 
     // Update status to chunking
     await updateLectureStatus(lectureId, { status: 'chunking' });

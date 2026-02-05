@@ -36,24 +36,21 @@ export const SemanticChunksSchema = z.object({
 export type SemanticChunk = z.infer<typeof SemanticChunksSchema>['chunks'][number];
 
 /**
- * Prompt for the LLM to detect topic boundaries.
+ * System prompt for the LLM to detect topic boundaries.
  */
-const CHUNKING_PROMPT = `You are analyzing a lecture transcript to identify topic boundaries.
+const CHUNKING_SYSTEM_PROMPT = `You are analyzing a lecture transcript to identify topic boundaries.
 
 Split the transcript into logical chunks where each chunk covers ONE topic or concept.
 Return the chunks with:
 - title: A brief 3-6 word title for the topic
-- text: The EXACT verbatim text from the transcript (do not paraphrase)
+- text: Copy the EXACT verbatim text from the transcript for this chunk (do not paraphrase or summarize)
 
 Important:
 - Each chunk should be a coherent topic (not arbitrary time splits)
-- Preserve the exact wording from the transcript
+- The text field MUST contain the exact words from the transcript, not a summary
 - Typical chunk length: 1-5 minutes of content
 - Look for topic transitions: "Now let's talk about...", "Moving on to...", etc.
-- If the transcript is short, it's okay to return just one chunk
-
-Transcript:
-`;
+- If the transcript is short, it's okay to return just one chunk`;
 
 /**
  * Calculate text similarity between two strings (0.0 to 1.0).
@@ -107,7 +104,8 @@ export async function detectTopicBoundaries(
   const result = await generateObject({
     model: openrouter(CHUNKING_MODEL),
     schema: SemanticChunksSchema,
-    prompt: CHUNKING_PROMPT + transcriptText,
+    system: CHUNKING_SYSTEM_PROMPT,
+    prompt: transcriptText,
   });
 
   return result.object.chunks;

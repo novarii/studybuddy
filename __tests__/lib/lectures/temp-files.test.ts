@@ -66,12 +66,12 @@ describe('Lecture Temp Files', () => {
   describe('getTempAudioPath', () => {
     it('should return correct path for audio file', () => {
       const filePath = getTempAudioPath(testLectureId);
-      expect(filePath).toBe(path.join(TEST_TEMP_PATH, `${testLectureId}.m4a`));
+      expect(filePath).toBe(path.join(TEST_TEMP_PATH, `${testLectureId}.mp3`));
     });
 
     it('should handle different lecture IDs', () => {
       const filePath = getTempAudioPath('another-lecture-id');
-      expect(filePath).toBe(path.join(TEST_TEMP_PATH, 'another-lecture-id.m4a'));
+      expect(filePath).toBe(path.join(TEST_TEMP_PATH, 'another-lecture-id.mp3'));
     });
   });
 
@@ -80,7 +80,7 @@ describe('Lecture Temp Files', () => {
       const filePath = await saveTempAudio(testLectureId, testAudioContent);
 
       expect(filePath).toContain(testLectureId);
-      expect(filePath).toContain('.m4a');
+      expect(filePath).toContain('.mp3');
 
       // Verify file was written
       const storedContent = await fs.readFile(filePath);
