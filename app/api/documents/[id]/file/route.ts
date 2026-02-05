@@ -67,7 +67,7 @@ export async function GET(req: Request, { params }: RouteParams) {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(downloadFilename)}"`,
+      'Content-Disposition': `inline; filename="${encodeURIComponent(downloadFilename)}"`,
       'Content-Length': pdfBytes.length.toString(),
     },
   });

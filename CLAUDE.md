@@ -100,6 +100,26 @@ This is the Next.js 16 frontend for StudyBuddy, an AI-powered study assistant. I
 Copy `.env.example` to `.env.local` and configure:
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` - Clerk auth keys
 - `NEXT_PUBLIC_API_URL` - Backend API endpoint (default: `http://localhost:8000/api`)
+- `DATABASE_URL` - PostgreSQL connection string
+
+### Database
+**Use `studybuddy-dev` database** (not `studybuddy-prod` which is legacy).
+
+```
+DATABASE_URL=postgresql://postgres:PASSWORD@studybuddy-db:5432/studybuddy-dev
+```
+
+- Host: `studybuddy-db` (not `localhost`)
+- Database: `studybuddy-dev`
+- Schema: `ai` (all tables are in the `ai` schema)
+
+**Drizzle ORM:**
+```bash
+pnpm drizzle-kit generate  # Generate migration from schema changes
+pnpm drizzle-kit migrate   # Apply pending migrations
+```
+
+Migrations are tracked in `drizzle.__drizzle_migrations` table.
 
 ### Styling Conventions
 - Use `cn()` from `@/lib/utils` for conditional class merging

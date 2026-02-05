@@ -1,50 +1,11 @@
 import type { Course, Document, Lecture, ChatSession, StoredMessage, RAGSource } from "@/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-
 type FetchOptions = RequestInit & {
   token?: string;
 };
 
-async function fetchWithAuth<T>(
-  endpoint: string,
-  options: FetchOptions = {}
-): Promise<T> {
-  const { token, ...fetchOptions } = options;
-
-  const headers: HeadersInit = {
-    ...(fetchOptions.headers || {}),
-  };
-
-  if (token) {
-    (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
-  }
-
-  // Don't set Content-Type for FormData (browser sets it with boundary)
-  if (!(fetchOptions.body instanceof FormData)) {
-    (headers as Record<string, string>)["Content-Type"] = "application/json";
-  }
-
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...fetchOptions,
-    headers,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: "Request failed" }));
-    throw new Error(error.detail || error.error || `HTTP ${response.status}`);
-  }
-
-  // Handle 204 No Content
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json();
-}
-
 /**
- * Fetch helper for local API routes (no API_BASE prefix)
+ * Fetch helper for local API routes
  */
 async function fetchLocal<T>(
   endpoint: string,
@@ -90,6 +51,9 @@ export type DocumentUploadResponse = {
 
 export type UploadProgressCallback = (progress: number) => void;
 
+/**
+ * Upload with progress tracking via XHR
+ */
 function uploadWithProgress(
   endpoint: string,
   formData: FormData,
@@ -116,7 +80,7 @@ function uploadWithProgress(
       } else {
         try {
           const error = JSON.parse(xhr.responseText);
-          reject(new Error(error.detail || `HTTP ${xhr.status}`));
+          reject(new Error(error.detail || error.error || `HTTP ${xhr.status}`));
         } catch {
           reject(new Error(`HTTP ${xhr.status}`));
         }
@@ -126,7 +90,7 @@ function uploadWithProgress(
     xhr.addEventListener("error", () => reject(new Error("Network error")));
     xhr.addEventListener("abort", () => reject(new Error("Upload cancelled")));
 
-    xhr.open("POST", `${API_BASE}${endpoint}`);
+    xhr.open("POST", endpoint);
     xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     xhr.send(formData);
   });
@@ -136,30 +100,66 @@ export const api = {
   courses: {
     /**
      * List all available courses (official CDCS courses)
+     * Uses local API route
      */
-    listAll: (token: string) =>
-      fetchWithAuth<Course[]>("/courses", { token }),
+    listAll: async (token: string): Promise<Course[]> => {
+      const response = await fetchLocal<{
+        courses: Array<{
+          id: string;
+          code: string;
+          title: string;
+          instructor: string | null;
+          isOfficial: boolean;
+        }>;
+      }>("/api/courses", { token });
+
+      return response.courses.map((c) => ({
+        id: c.id,
+        code: c.code,
+        title: c.title,
+        instructor: c.instructor,
+      }));
+    },
 
     /**
      * List courses the current user has added
+     * Uses local API route
      */
-    listUserCourses: (token: string) =>
-      fetchWithAuth<Course[]>("/user/courses", { token }),
+    listUserCourses: async (token: string): Promise<Course[]> => {
+      const response = await fetchLocal<{
+        courses: Array<{
+          id: string;
+          code: string;
+          title: string;
+          instructor: string | null;
+          isOfficial: boolean;
+        }>;
+      }>("/api/user/courses", { token });
+
+      return response.courses.map((c) => ({
+        id: c.id,
+        code: c.code,
+        title: c.title,
+        instructor: c.instructor,
+      }));
+    },
 
     /**
      * Add a course to the current user's list
+     * Uses local API route
      */
     addToUser: (token: string, courseId: string) =>
-      fetchWithAuth<{ message: string }>(`/user/courses/${courseId}`, {
+      fetchLocal<{ message: string }>(`/api/user/courses/${courseId}`, {
         token,
         method: "POST",
       }),
 
     /**
      * Remove a course from the current user's list
+     * Uses local API route
      */
     removeFromUser: (token: string, courseId: string) =>
-      fetchWithAuth<void>(`/user/courses/${courseId}`, {
+      fetchLocal<void>(`/api/user/courses/${courseId}`, {
         token,
         method: "DELETE",
       }),
@@ -167,13 +167,30 @@ export const api = {
 
   documents: {
     /**
-     * List all documents for a course
+     * List all documents for a course (uses local API route)
      */
-    listByCourse: (token: string, courseId: string) =>
-      fetchWithAuth<Document[]>(`/courses/${courseId}/documents`, { token }),
+    listByCourse: async (token: string, courseId: string): Promise<Document[]> => {
+      const response = await fetchLocal<{ documents: Array<{
+        id: string;
+        filename: string;
+        status: string;
+        pageCount: number;
+        uniquePageCount: number | null;
+        createdAt: string;
+      }> }>(`/api/documents?courseId=${courseId}`, { token });
+
+      return response.documents.map((doc): Document => ({
+        id: doc.id,
+        filename: doc.filename,
+        status: doc.status as Document['status'],
+        page_count: doc.pageCount,
+        unique_page_count: doc.uniquePageCount,
+        created_at: doc.createdAt,
+      }));
+    },
 
     /**
-     * Upload a PDF document to a course
+     * Upload a PDF document to a course (uses local API route)
      */
     upload: (
       token: string,
@@ -182,36 +199,52 @@ export const api = {
       onProgress?: UploadProgressCallback
     ) => {
       const formData = new FormData();
-      formData.append("course_id", courseId);
+      formData.append("courseId", courseId);
       formData.append("file", file);
-      return uploadWithProgress("/documents/upload", formData, token, onProgress);
+      return uploadWithProgress("/api/documents", formData, token, onProgress);
     },
 
     /**
-     * Get document details
-     */
-    get: (token: string, documentId: string) =>
-      fetchWithAuth<Document>(`/documents/${documentId}`, { token }),
-
-    /**
-     * Delete a document
+     * Delete a document (uses local API route)
      */
     delete: (token: string, documentId: string) =>
-      fetchWithAuth<void>(`/documents/${documentId}`, { token, method: "DELETE" }),
+      fetchLocal<void>(`/api/documents/${documentId}`, { token, method: "DELETE" }),
   },
 
   lectures: {
     /**
-     * List all lectures for a course
+     * List all lectures for a course (uses local API route)
      */
-    listByCourse: (token: string, courseId: string) =>
-      fetchWithAuth<Lecture[]>(`/courses/${courseId}/lectures`, { token }),
+    listByCourse: async (token: string, courseId: string): Promise<Lecture[]> => {
+      const response = await fetchLocal<{ lectures: Array<{
+        id: string;
+        courseId: string;
+        panoptoSessionId: string | null;
+        panoptoUrl: string;
+        title: string | null;
+        durationSeconds: number | null;
+        chunkCount: number | null;
+        status: string;
+        errorMessage: string | null;
+        createdAt: string;
+        updatedAt: string;
+      }> }>(`/api/lectures?courseId=${courseId}`, { token });
 
-    /**
-     * Get lecture details
-     */
-    get: (token: string, lectureId: string) =>
-      fetchWithAuth<Lecture>(`/lectures/${lectureId}`, { token }),
+      return response.lectures.map((lecture): Lecture => ({
+        id: lecture.id,
+        course_id: lecture.courseId,
+        panopto_session_id: lecture.panoptoSessionId,
+        panopto_url: lecture.panoptoUrl || '',
+        stream_url: '',
+        title: lecture.title,
+        duration_seconds: lecture.durationSeconds,
+        status: lecture.status as Lecture['status'],
+        error_message: lecture.errorMessage,
+        created_at: lecture.createdAt,
+        updated_at: lecture.updatedAt,
+      }));
+    },
+
   },
 
   sessions: {

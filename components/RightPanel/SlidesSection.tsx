@@ -7,8 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { ColorScheme } from "@/types";
 import { cn } from "@/lib/utils";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-
 type SlidesSectionProps = {
   isCollapsed: boolean;
   colors: ColorScheme;
@@ -20,8 +18,8 @@ type SlidesSectionProps = {
 };
 
 export const SlidesSection: React.FC<SlidesSectionProps> = ({ isCollapsed, colors, pageNumber, hasMaterials, documentId, onToggle, onUploadClick }) => {
-  // Construct PDF URL from document ID
-  const pdfUrl = documentId ? `${API_BASE}/documents/${documentId}/file#page=${pageNumber}` : null;
+  // Construct PDF URL from local API route
+  const pdfUrl = documentId ? `/api/documents/${documentId}/file#page=${pageNumber}` : null;
   return (
     <section
       className={cn("flex flex-col border-b transition-all duration-300", isCollapsed ? "flex-none" : "")}

@@ -29,6 +29,27 @@
       "when": 1770105600000,
       "tag": "0003_slide_chunks_knowledge",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770224582745,
+      "tag": "0004_lumpy_pestilence",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1770336000000,
+      "tag": "0005_lecture_chunks_knowledge",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1770237050715,
+      "tag": "0006_brainy_forge",
+      "breakpoints": true
     }
   ]
 }

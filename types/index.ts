@@ -43,14 +43,11 @@ export type Course = {
 // Document from backend
 export type Document = {
   id: string;
-  course_id: string;
   filename: string;
-  mime_type: string;
-  size_bytes: number;
+  status: "processing" | "completed" | "failed";
   page_count: number | null;
-  status: "uploaded" | "failed";
+  unique_page_count: number | null;
   created_at: string;
-  updated_at: string;
 };
 
 // Lecture from backend

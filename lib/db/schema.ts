@@ -11,6 +11,7 @@ import {
   boolean,
   jsonb,
   uniqueIndex,
+  primaryKey,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -144,3 +145,97 @@ export const documents = aiSchema.table(
 
 export type Document = typeof documents.$inferSelect;
 export type NewDocument = typeof documents.$inferInsert;
+
+export const lectures = aiSchema.table(
+  'lectures',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    courseId: uuid('course_id').notNull(),
+
+    // Panopto identification
+    panoptoSessionId: text('panopto_session_id').notNull(),
+    panoptoUrl: text('panopto_url'),
+    streamUrl: text('stream_url'),
+
+    // Content metadata (no file storage - only embeddings persist)
+    title: text('title').notNull(),
+    durationSeconds: integer('duration_seconds'),
+    chunkCount: integer('chunk_count'),
+
+    // Processing status
+    // 'pending' | 'downloading' | 'transcribing' | 'chunking' | 'completed' | 'failed'
+    status: text('status').notNull().default('pending'),
+    errorMessage: text('error_message'),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    // Unique constraint: one lecture per course + panopto session
+    uniqueIndex('lectures_course_session_idx').on(
+      table.courseId,
+      table.panoptoSessionId
+    ),
+    index('idx_lectures_course_id').on(table.courseId),
+  ]
+);
+
+// Many-to-many: users can share access to lectures
+export const userLectures = aiSchema.table(
+  'user_lectures',
+  {
+    userId: text('user_id').notNull(),
+    lectureId: uuid('lecture_id')
+      .notNull()
+      .references(() => lectures.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.lectureId] }),
+    index('idx_user_lectures_user_id').on(table.userId),
+  ]
+);
+
+export type Lecture = typeof lectures.$inferSelect;
+export type NewLecture = typeof lectures.$inferInsert;
+
+export type UserLecture = typeof userLectures.$inferSelect;
+export type NewUserLecture = typeof userLectures.$inferInsert;
+
+// Courses table - synced from CDCS catalog
+export const courses = aiSchema.table(
+  'courses',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    code: text('code').notNull().unique(),
+    title: text('title').notNull(),
+    instructor: text('instructor'),
+    isOfficial: boolean('is_official').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [index('idx_courses_code').on(table.code)]
+);
+
+// Many-to-many: users enrolled in courses
+export const userCourses = aiSchema.table(
+  'user_courses',
+  {
+    userId: text('user_id').notNull(), // Clerk ID directly - no users table needed
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.courseId] }),
+    index('idx_user_courses_user_id').on(table.userId),
+    index('idx_user_courses_course_id').on(table.courseId),
+  ]
+);
+
+export type Course = typeof courses.$inferSelect;
+export type NewCourse = typeof courses.$inferInsert;
+
+export type UserCourse = typeof userCourses.$inferSelect;
+export type NewUserCourse = typeof userCourses.$inferInsert;

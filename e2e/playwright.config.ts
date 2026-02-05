@@ -40,22 +40,22 @@ export default defineConfig({
       testMatch: /global\.setup\.ts/,
     },
 
-    // Unauthenticated tests (API routes, auth flow)
+    // Unauthenticated tests (API routes, auth flow, document/lecture upload validation)
+    // Note: No dependencies on global setup since we clear auth state anyway
     {
       name: 'unauthenticated',
-      testMatch: /\/(api-routes|auth-flow|document-upload)\.spec\.ts/,
+      testMatch: /\/(api-routes|auth-flow|document-upload|lecture-upload)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         // Clear all auth state to ensure truly unauthenticated requests
         storageState: { cookies: [], origins: [] },
       },
-      dependencies: ['global setup'],
     },
 
-    // Authenticated tests (chat, sessions, OpenRouter BYOK, document upload) - use stored auth state
+    // Authenticated tests (chat, sessions, OpenRouter BYOK, courses, document/lecture upload) - use stored auth state
     {
       name: 'authenticated',
-      testMatch: /\/(chat-rag|session-management|chat-frontend-integration|openrouter-byok|document-upload)\.spec\.ts/,
+      testMatch: /\/(chat-rag|session-management|chat-frontend-integration|openrouter-byok|courses|document-upload|lecture-upload)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         // Use prepared Clerk auth state

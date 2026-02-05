@@ -57,3 +57,4 @@ images/*
 
 # Document uploads
 /uploads/
+tmp/
