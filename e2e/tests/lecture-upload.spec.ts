@@ -15,64 +15,16 @@ import { test, expect } from '@playwright/test';
  * - Basic validation
  */
 
-test.describe('Lecture Audio Upload API', () => {
-  test.describe('audio upload endpoint', () => {
-    test('should check route exists and is protected', async ({ request }) => {
-      // Send empty multipart - route should return 400 for missing fields, not crash
-      const response = await request.post('/api/lectures/audio', {
-        multipart: {},
-      });
-
-      // Should return 400 (missing fields) or auth error, not 500
-      // Note: Empty formData may still cause issues in some environments
-      expect(response.status()).toBeDefined();
-    });
-
-    // Note: Multipart tests may fail in E2E due to how Clerk middleware
-    // handles form data parsing. The unit tests cover multipart validation.
-    // These tests verify the route responds to multipart requests.
-    test('should handle multipart with required fields', async ({ request }) => {
-      const response = await request.post('/api/lectures/audio', {
-        multipart: {
-          courseId: '550e8400-e29b-41d4-a716-446655440000',
-          panoptoSessionId: 'session-123',
-          title: 'Test Lecture',
-          file: {
-            name: 'lecture.m4a',
-            mimeType: 'audio/mp4',
-            buffer: Buffer.from('fake audio content'),
-          },
-        },
-      });
-
-      // Multipart handling may fail in E2E test environment
-      // Accept any response - unit tests cover validation
-      expect(response.status()).toBeDefined();
-    });
-
-    test('should handle multipart without file', async ({ request }) => {
-      const response = await request.post('/api/lectures/audio', {
-        multipart: {
-          courseId: '550e8400-e29b-41d4-a716-446655440000',
-          panoptoSessionId: 'session-123',
-          title: 'Test Lecture',
-        },
-      });
-
-      // Accept any response - unit tests cover validation
-      expect(response.status()).toBeDefined();
-    });
-  });
-});
-
 test.describe('Lecture Stream Upload API', () => {
   test.describe('stream upload endpoint', () => {
     test('should check route exists and is protected', async ({ request }) => {
       const response = await request.post('/api/lectures/stream', {
         data: {
           streamUrl: 'https://cloudfront.net/master.m3u8',
+          sessionId: 'session-123',
           courseId: '550e8400-e29b-41d4-a716-446655440000',
           title: 'Test Lecture',
+          sourceUrl: 'https://panopto.com/viewer?id=session-123',
         },
       });
 
@@ -95,7 +47,7 @@ test.describe('Lecture Stream Upload API', () => {
       const response = await request.post('/api/lectures/stream', {
         data: {
           courseId: '550e8400-e29b-41d4-a716-446655440000',
-          // Missing streamUrl and title
+          // Missing streamUrl, sessionId, title, sourceUrl
         },
       });
 
@@ -123,10 +75,10 @@ test.describe('Lecture List and Status API', () => {
     });
   });
 
-  test.describe('status endpoint', () => {
+  test.describe('status endpoint (jobs)', () => {
     test('should return response for valid id format', async ({ request }) => {
       const response = await request.get(
-        '/api/lectures/550e8400-e29b-41d4-a716-446655440000'
+        '/api/lectures/jobs/550e8400-e29b-41d4-a716-446655440000'
       );
 
       // Either 404 (not found), 401/403 (unauthorized), or auth redirect
@@ -135,7 +87,7 @@ test.describe('Lecture List and Status API', () => {
 
     test('should handle non-existent lecture', async ({ request }) => {
       const response = await request.get(
-        '/api/lectures/00000000-0000-0000-0000-000000000000'
+        '/api/lectures/jobs/00000000-0000-0000-0000-000000000000'
       );
 
       // Either 404 or auth redirect
@@ -143,10 +95,10 @@ test.describe('Lecture List and Status API', () => {
     });
   });
 
-  test.describe('delete endpoint', () => {
+  test.describe('delete endpoint (jobs)', () => {
     test('should protect delete endpoint', async ({ request }) => {
       const response = await request.delete(
-        '/api/lectures/550e8400-e29b-41d4-a716-446655440000'
+        '/api/lectures/jobs/550e8400-e29b-41d4-a716-446655440000'
       );
 
       // Either 401 (unauthorized), 403 (forbidden), 404, or HTML redirect

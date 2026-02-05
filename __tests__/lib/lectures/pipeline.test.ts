@@ -5,6 +5,7 @@ vi.stubEnv('RUNPOD_API_KEY', 'test-runpod-api-key');
 vi.stubEnv('RUNPOD_ENDPOINT_ID', 'test-endpoint-id');
 vi.stubEnv('OPENROUTER_API_KEY', 'test-openrouter-key');
 vi.stubEnv('LECTURE_TEMP_PATH', '/tmp/test-lectures');
+vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://test-app.example.com');
 
 // Mock database - define mocks first, then use in vi.mock
 vi.mock('@/lib/db', () => {
@@ -32,7 +33,6 @@ vi.mock('@/lib/db', () => {
 vi.mock('@/lib/lectures/temp-files', () => ({
   getTempAudioPath: vi.fn((id: string) => `/tmp/test-lectures/${id}.m4a`),
   cleanupTempAudio: vi.fn().mockResolvedValue(undefined),
-  readTempAudio: vi.fn().mockResolvedValue(Buffer.from('mock audio data')),
 }));
 
 // Mock RunPod client
@@ -134,6 +134,9 @@ describe('Lecture Pipeline', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Re-stub env vars (cleared by afterEach)
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://test-app.example.com');
 
     // Reset chained mocks
     const mockSet = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });

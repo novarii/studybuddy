@@ -19,7 +19,7 @@ const RUNPOD_BASE_URL = 'https://api.runpod.ai/v2';
  * Default configuration for RunPod faster-whisper transcription.
  */
 export const RUNPOD_CONFIG: RunPodConfig = {
-  model: 'small',
+  model: 'tiny',  // Fastest model - testing with improved prompt
   language: 'en',
   transcription: 'plain_text',
   word_timestamps: true,
@@ -52,14 +52,14 @@ function getRunPodConfig(): { apiKey: string; endpointId: string } {
 }
 
 /**
- * Submit a transcription job to RunPod.
+ * Submit a transcription job to RunPod using audio URL.
  *
- * @param audioBase64 - Base64-encoded audio data
+ * @param audioUrl - Public URL where RunPod can fetch the audio
  * @returns The job ID for polling
  * @throws TranscriptionError on failure
  */
 export async function submitTranscriptionJob(
-  audioBase64: string
+  audioUrl: string
 ): Promise<string> {
   const { apiKey, endpointId } = getRunPodConfig();
 
@@ -75,7 +75,7 @@ export async function submitTranscriptionJob(
       },
       body: JSON.stringify({
         input: {
-          audio_base64: audioBase64,
+          audio: audioUrl,  // Can be URL or base64 - worker auto-detects
           model: RUNPOD_CONFIG.model,
           language: RUNPOD_CONFIG.language,
           transcription: RUNPOD_CONFIG.transcription,
@@ -92,8 +92,10 @@ export async function submitTranscriptionJob(
   }
 
   if (!response.ok) {
+    const errorBody = await response.text();
+    console.error('[RunPod] Submit failed:', response.status, errorBody);
     throw new TranscriptionError(
-      `Failed to submit transcription job: ${response.statusText}`,
+      `Failed to submit transcription job: ${response.statusText} - ${errorBody}`,
       'SUBMIT_FAILED'
     );
   }
@@ -215,28 +217,23 @@ export interface TranscribeOptions {
  *
  * This is the high-level function that combines job submission and polling.
  *
- * @param audioBase64 - Base64-encoded audio data
+ * @param audioUrl - Public URL where RunPod can fetch the audio
  * @param options - Transcription options
  * @returns The transcription result with text, segments, and language
  * @throws TranscriptionError on failure
  *
  * @example
  * ```typescript
- * import { readFileSync } from 'fs';
- *
- * const audioBuffer = readFileSync('lecture.m4a');
- * const audioBase64 = audioBuffer.toString('base64');
- *
- * const result = await transcribeAudio(audioBase64);
+ * const result = await transcribeAudio('https://your-server.com/api/lectures/audio/abc123');
  * console.log(result.transcription);
  * console.log(result.segments.length, 'segments');
  * ```
  */
 export async function transcribeAudio(
-  audioBase64: string,
+  audioUrl: string,
   options: TranscribeOptions = {}
 ): Promise<TranscriptionResult> {
-  const jobId = await submitTranscriptionJob(audioBase64);
+  const jobId = await submitTranscriptionJob(audioUrl);
 
   return pollForResult(jobId, {
     maxAttempts: options.maxPollAttempts,

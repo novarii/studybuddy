@@ -2,33 +2,35 @@ import { auth } from '@clerk/nextjs/server';
 
 import { checkAndCreateLecture } from '@/lib/lectures/deduplication';
 import { downloadAndProcessLecture } from '@/lib/lectures/pipeline';
-import { extractPanoptoSessionId } from '@/lib/lectures/utils';
 
 /**
  * Request body for stream URL upload.
  */
 interface StreamUploadRequest {
   streamUrl: string;
+  sessionId: string;
   courseId: string;
   title: string;
-  panoptoUrl?: string;
+  sourceUrl: string;
+  duration?: number;
 }
 
 /**
  * POST /api/lectures/stream
  *
  * Process a lecture from an HLS stream URL.
- * This is the fallback path when the browser extension cannot send audio bytes.
  *
  * Request: JSON body with:
- * - streamUrl: HLS stream URL (m3u8)
+ * - streamUrl: HLS stream URL (m3u8) for FFmpeg download
+ * - sessionId: Panopto session ID for deduplication
  * - courseId: Course UUID
  * - title: Lecture title
- * - panoptoUrl (optional): Panopto viewer URL (used to extract session ID if not in streamUrl)
+ * - sourceUrl: Panopto viewer URL for citations
+ * - duration (optional): Lecture duration in seconds
  *
  * Response:
  * - 202 Accepted: Lecture created/found, processing started if new
- * - 400 Bad Request: Missing required fields or invalid URL
+ * - 400 Bad Request: Missing required fields
  * - 401 Unauthorized: Not authenticated
  */
 export async function POST(req: Request) {
@@ -45,11 +47,15 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { streamUrl, courseId, title, panoptoUrl } = body;
+  const { streamUrl, sessionId, courseId, title, sourceUrl, duration } = body;
 
   // Validate required fields
   if (!streamUrl) {
     return Response.json({ error: 'streamUrl is required' }, { status: 400 });
+  }
+
+  if (!sessionId) {
+    return Response.json({ error: 'sessionId is required' }, { status: 400 });
   }
 
   if (!courseId) {
@@ -60,28 +66,18 @@ export async function POST(req: Request) {
     return Response.json({ error: 'title is required' }, { status: 400 });
   }
 
-  // Extract panopto session ID from URL
-  // Prefer panoptoUrl if provided, otherwise try streamUrl
-  let panoptoSessionId: string;
-  try {
-    panoptoSessionId = extractPanoptoSessionId(panoptoUrl || streamUrl);
-  } catch (error) {
-    return Response.json(
-      {
-        error: 'Unable to extract session ID from URL',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 400 }
-    );
+  if (!sourceUrl) {
+    return Response.json({ error: 'sourceUrl is required' }, { status: 400 });
   }
 
   // Check for existing lecture and create if not found
   const { lecture, isNew } = await checkAndCreateLecture(userId, {
     courseId,
-    panoptoSessionId,
+    panoptoSessionId: sessionId,
     title,
-    panoptoUrl,
+    panoptoUrl: sourceUrl,
     streamUrl,
+    durationSeconds: duration,
   });
 
   // Only process if this is a new lecture

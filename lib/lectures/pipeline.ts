@@ -241,6 +241,8 @@ export async function downloadAndProcessLecture(
     // Update status to downloading
     await updateLectureStatus(lectureId, { status: 'downloading' });
 
+    console.log(`[LecturePipeline] Downloading from stream URL: ${streamUrl.substring(0, 100)}...`);
+
     // Download HLS stream and extract audio
     const audioPath = getTempAudioPath(lectureId);
     const { durationSeconds } = await downloadAndExtractAudio(streamUrl, audioPath);

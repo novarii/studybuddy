@@ -1,8 +1,8 @@
 /**
- * FFmpeg integration for audio extraction from video files and HLS streams.
+ * FFmpeg integration for audio extraction from video files and streams.
  *
  * This module provides utilities to:
- * - Download and extract audio from HLS streams (for Panopto fallback path)
+ * - Download and extract audio from HLS streams or direct video URLs
  * - Extract audio from local video files
  * - Probe audio duration using ffprobe
  *
@@ -121,8 +121,8 @@ export async function probeDuration(audioPath: string): Promise<number> {
 /**
  * Extract audio from a local video file.
  *
- * Uses FFmpeg to extract audio track and encode as AAC.
- * Use this when the video is already downloaded locally.
+ * Uses FFmpeg to copy the audio track without re-encoding.
+ * This is fast and preserves original audio quality.
  *
  * @param videoPath - Path to the input video file
  * @param outputPath - Path where the audio file will be saved
@@ -147,8 +147,7 @@ export async function extractAudioFromFile(
       '-y',              // Overwrite output file if exists
       '-i', videoPath,   // Input file
       '-vn',             // No video
-      '-acodec', 'aac',  // Audio codec
-      '-b:a', '128k',    // Audio bitrate
+      '-c:a', 'copy',    // Copy audio stream without re-encoding
       outputPath,
     ]);
 
@@ -186,18 +185,14 @@ export async function extractAudioFromFile(
 }
 
 /**
- * Download HLS stream and extract audio in one step.
+ * Download from URL and extract audio in one step.
  *
- * FFmpeg handles HLS natively - it will:
- * 1. Parse the .m3u8 playlist
- * 2. Download all .ts segments
- * 3. Handle any AES encryption
- * 4. Copy audio stream without re-encoding (fast!)
+ * FFmpeg handles both HLS streams (.m3u8) and direct video URLs natively.
+ * Audio is copied without re-encoding for speed.
  *
- * Uses optimized flags for faster startup and audio-only extraction.
  * Concurrency is limited to 4 simultaneous downloads via p-limit.
  *
- * @param streamUrl - HLS stream URL (e.g., CloudFront pre-signed URL ending in .m3u8)
+ * @param streamUrl - HLS stream URL or direct video URL
  * @param outputPath - Path where the audio file will be saved
  * @returns FFmpegResult with output path and duration
  * @throws FFmpegError on failure
@@ -228,14 +223,9 @@ async function _downloadAndExtractAudio(
 ): Promise<FFmpegResult> {
   return new Promise((resolve, reject) => {
     const ffmpeg = _spawn('ffmpeg', [
-      '-analyzeduration', '0',  // Skip duration analysis (faster startup)
-      '-probesize', '32',       // Minimal probe size (faster startup)
-      '-i', streamUrl,          // HLS URL - FFmpeg handles .m3u8 natively
-      '-map', '0:a:0',          // Select first audio stream
-      '-ar', '16000',           // 16kHz sample rate (Groq recommendation)
-      '-ac', '1',               // Mono (Groq recommendation)
-      '-c:a', 'libmp3lame',     // MP3 codec (much smaller than FLAC)
-      '-b:a', '32k',            // 32kbps is plenty for speech (Whisper handles it fine)
+      '-i', streamUrl,          // URL - FFmpeg handles HLS and direct URLs
+      '-vn',                    // No video
+      '-c:a', 'copy',           // Copy audio stream without re-encoding
       '-y',                     // Overwrite output file if exists
       outputPath,
     ]);

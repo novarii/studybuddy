@@ -32,7 +32,25 @@ export const FILLER_WORDS = [
 ];
 
 /**
- * Remove filler words from text while preserving meaningful content.
+ * Common Whisper hallucinations that appear during silence or at segment boundaries.
+ * These should be removed entirely from transcripts.
+ */
+export const WHISPER_HALLUCINATIONS = [
+  'thank you',
+  'thanks',
+  'thanks for watching',
+  'thanks for listening',
+  'bye',
+  'goodbye',
+  'see you next time',
+  'see you',
+  'i have no clue what that is',
+  'subscribe',
+  'like and subscribe',
+];
+
+/**
+ * Remove filler words and hallucinations from text while preserving meaningful content.
  *
  * - Matches filler words at word boundaries only (won't affect "likely", "umbrella")
  * - Case-insensitive matching
@@ -42,10 +60,12 @@ export const FILLER_WORDS = [
 export function removeFillerWords(text: string): string {
   let result = text;
 
-  // Sort by length descending to match multi-word fillers first
-  const sortedFillers = [...FILLER_WORDS].sort((a, b) => b.length - a.length);
+  // Combine fillers and hallucinations, sort by length descending to match multi-word phrases first
+  const allFillers = [...FILLER_WORDS, ...WHISPER_HALLUCINATIONS].sort(
+    (a, b) => b.length - a.length
+  );
 
-  for (const filler of sortedFillers) {
+  for (const filler of allFillers) {
     // Escape special regex characters in filler
     const escaped = filler.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     // Match filler at word boundary, followed by optional punctuation and whitespace

@@ -32,7 +32,7 @@ export async function ensureTempDir(): Promise<void> {
  * @returns The file path where the audio should be stored temporarily
  */
 export function getTempAudioPath(lectureId: string): string {
-  return path.join(getTempPath(), `${lectureId}.mp3`);
+  return path.join(getTempPath(), `${lectureId}.m4a`);
 }
 
 /**

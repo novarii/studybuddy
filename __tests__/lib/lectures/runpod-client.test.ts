@@ -25,7 +25,7 @@ describe('RunPod Transcription Client', () => {
     detected_language: 'en',
   };
 
-  const sampleAudioBase64 = 'SGVsbG8gV29ybGQ='; // "Hello World" in base64
+  const sampleAudioUrl = 'https://example.com/api/lectures/audio/lecture-123';
 
   beforeEach(() => {
     global.fetch = mockFetch;
@@ -58,7 +58,7 @@ describe('RunPod Transcription Client', () => {
         json: async () => ({ id: 'job-123', status: 'IN_QUEUE' }),
       } as Response);
 
-      const result = await submitTranscriptionJob(sampleAudioBase64);
+      const result = await submitTranscriptionJob(sampleAudioUrl);
 
       expect(result).toBe('job-123');
       expect(mockFetch).toHaveBeenCalledTimes(1);
@@ -77,7 +77,7 @@ describe('RunPod Transcription Client', () => {
       const call = mockFetch.mock.calls[0];
       const body = JSON.parse(call[1].body);
       expect(body.input).toEqual({
-        audio_base64: sampleAudioBase64,
+        audio: sampleAudioUrl,
         model: 'small',
         language: 'en',
         transcription: 'plain_text',
@@ -91,11 +91,12 @@ describe('RunPod Transcription Client', () => {
         ok: false,
         status: 401,
         statusText: 'Unauthorized',
+        text: async () => 'Invalid API key',
       } as Response);
 
-      const error = await submitTranscriptionJob(sampleAudioBase64).catch((e) => e);
+      const error = await submitTranscriptionJob(sampleAudioUrl).catch((e) => e);
       expect(error).toBeInstanceOf(TranscriptionError);
-      expect(error.message).toBe('Failed to submit transcription job: Unauthorized');
+      expect(error.message).toBe('Failed to submit transcription job: Unauthorized - Invalid API key');
     });
 
     it('should throw TranscriptionError when job ID is missing', async () => {
@@ -104,7 +105,7 @@ describe('RunPod Transcription Client', () => {
         json: async () => ({ status: 'IN_QUEUE' }), // Missing id
       } as Response);
 
-      const error = await submitTranscriptionJob(sampleAudioBase64).catch((e) => e);
+      const error = await submitTranscriptionJob(sampleAudioUrl).catch((e) => e);
       expect(error).toBeInstanceOf(TranscriptionError);
       expect(error.message).toBe('RunPod response missing job ID');
     });
@@ -112,7 +113,7 @@ describe('RunPod Transcription Client', () => {
     it('should throw TranscriptionError when API key is missing', async () => {
       vi.stubEnv('RUNPOD_API_KEY', '');
 
-      const error = await submitTranscriptionJob(sampleAudioBase64).catch((e) => e);
+      const error = await submitTranscriptionJob(sampleAudioUrl).catch((e) => e);
       expect(error).toBeInstanceOf(TranscriptionError);
       expect(error.message).toBe('RUNPOD_API_KEY environment variable is not set');
     });
@@ -120,7 +121,7 @@ describe('RunPod Transcription Client', () => {
     it('should throw TranscriptionError when endpoint ID is missing', async () => {
       vi.stubEnv('RUNPOD_ENDPOINT_ID', '');
 
-      const error = await submitTranscriptionJob(sampleAudioBase64).catch((e) => e);
+      const error = await submitTranscriptionJob(sampleAudioUrl).catch((e) => e);
       expect(error).toBeInstanceOf(TranscriptionError);
       expect(error.message).toBe('RUNPOD_ENDPOINT_ID environment variable is not set');
     });
@@ -128,7 +129,7 @@ describe('RunPod Transcription Client', () => {
     it('should handle network errors', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      const error = await submitTranscriptionJob(sampleAudioBase64).catch((e) => e);
+      const error = await submitTranscriptionJob(sampleAudioUrl).catch((e) => e);
       expect(error).toBeInstanceOf(TranscriptionError);
       expect(error.message).toBe('Failed to submit transcription job: Network error');
     });
@@ -263,7 +264,7 @@ describe('RunPod Transcription Client', () => {
         }),
       } as Response);
 
-      const result = await transcribeAudio(sampleAudioBase64);
+      const result = await transcribeAudio(sampleAudioUrl);
 
       expect(result).toEqual(mockTranscriptionResult);
       expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -274,9 +275,10 @@ describe('RunPod Transcription Client', () => {
         ok: false,
         status: 400,
         statusText: 'Bad Request',
+        text: async () => 'Invalid input',
       } as Response);
 
-      await expect(transcribeAudio(sampleAudioBase64)).rejects.toThrow(
+      await expect(transcribeAudio(sampleAudioUrl)).rejects.toThrow(
         TranscriptionError
       );
     });
@@ -298,7 +300,7 @@ describe('RunPod Transcription Client', () => {
         }),
       } as Response);
 
-      await expect(transcribeAudio(sampleAudioBase64)).rejects.toThrow(
+      await expect(transcribeAudio(sampleAudioUrl)).rejects.toThrow(
         'Transcription failed: Worker crashed'
       );
     });
@@ -332,7 +334,7 @@ describe('RunPod Transcription Client', () => {
         }),
       } as Response);
 
-      const result = await transcribeAudio(sampleAudioBase64, {
+      const result = await transcribeAudio(sampleAudioUrl, {
         pollIntervalMs: 10,
       });
 
@@ -363,7 +365,7 @@ describe('RunPod Transcription Client', () => {
         }),
       } as Response);
 
-      const result = await transcribeAudio(sampleAudioBase64);
+      const result = await transcribeAudio(sampleAudioUrl);
 
       expect(result).toEqual(emptyResult);
       expect(result.transcription).toBe('');
@@ -395,7 +397,7 @@ describe('RunPod Transcription Client', () => {
         }),
       } as Response);
 
-      const result = await transcribeAudio(sampleAudioBase64);
+      const result = await transcribeAudio(sampleAudioUrl);
 
       expect(result.segments).toHaveLength(3);
       expect(result.segments[2].start).toBe(10.5);
@@ -423,7 +425,7 @@ describe('RunPod Transcription Client', () => {
         }),
       } as Response);
 
-      const result = await transcribeAudio(sampleAudioBase64);
+      const result = await transcribeAudio(sampleAudioUrl);
 
       expect(result.detected_language).toBe('es');
     });

@@ -13,20 +13,14 @@ vi.mock('@/lib/lectures/pipeline', () => ({
   downloadAndProcessLecture: vi.fn(),
 }));
 
-vi.mock('@/lib/lectures/utils', () => ({
-  extractPanoptoSessionId: vi.fn(),
-}));
-
 import { auth } from '@clerk/nextjs/server';
 import { checkAndCreateLecture } from '@/lib/lectures/deduplication';
 import { downloadAndProcessLecture } from '@/lib/lectures/pipeline';
-import { extractPanoptoSessionId } from '@/lib/lectures/utils';
 
 describe('POST /api/lectures/stream', () => {
   const mockAuth = auth as unknown as ReturnType<typeof vi.fn>;
   const mockCheckAndCreateLecture = checkAndCreateLecture as ReturnType<typeof vi.fn>;
   const mockDownloadAndProcessLecture = downloadAndProcessLecture as ReturnType<typeof vi.fn>;
-  const mockExtractPanoptoSessionId = extractPanoptoSessionId as ReturnType<typeof vi.fn>;
 
   const mockLecture = {
     id: 'lecture-uuid',
@@ -37,9 +31,16 @@ describe('POST /api/lectures/stream', () => {
     createdAt: new Date('2024-01-01'),
   };
 
+  const validRequestBody = {
+    streamUrl: 'https://cloudfront.net/master.m3u8',
+    sessionId: 'session-123',
+    courseId: 'course-uuid',
+    title: 'Test Lecture',
+    sourceUrl: 'https://panopto.com/viewer?id=session-123',
+  };
+
   beforeEach(() => {
     mockAuth.mockResolvedValue({ userId: 'user_123' });
-    mockExtractPanoptoSessionId.mockReturnValue('session-123');
     mockCheckAndCreateLecture.mockResolvedValue({
       lecture: mockLecture,
       isNew: true,
@@ -64,11 +65,7 @@ describe('POST /api/lectures/stream', () => {
       mockAuth.mockResolvedValue({ userId: null });
 
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const request = createRequest({
-        streamUrl: 'https://cloudfront.net/master.m3u8',
-        courseId: 'course-uuid',
-        title: 'Test Lecture',
-      });
+      const request = createRequest(validRequestBody);
 
       const response = await POST(request);
 
@@ -96,10 +93,8 @@ describe('POST /api/lectures/stream', () => {
 
     it('returns 400 when streamUrl is missing', async () => {
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const request = createRequest({
-        courseId: 'course-uuid',
-        title: 'Test Lecture',
-      });
+      const { streamUrl: _, ...bodyWithoutStreamUrl } = validRequestBody;
+      const request = createRequest(bodyWithoutStreamUrl);
 
       const response = await POST(request);
 
@@ -108,12 +103,22 @@ describe('POST /api/lectures/stream', () => {
       expect(data.error).toBe('streamUrl is required');
     });
 
+    it('returns 400 when sessionId is missing', async () => {
+      const { POST } = await import('@/app/api/lectures/stream/route');
+      const { sessionId: _, ...bodyWithoutSessionId } = validRequestBody;
+      const request = createRequest(bodyWithoutSessionId);
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toBe('sessionId is required');
+    });
+
     it('returns 400 when courseId is missing', async () => {
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const request = createRequest({
-        streamUrl: 'https://cloudfront.net/master.m3u8',
-        title: 'Test Lecture',
-      });
+      const { courseId: _, ...bodyWithoutCourseId } = validRequestBody;
+      const request = createRequest(bodyWithoutCourseId);
 
       const response = await POST(request);
 
@@ -124,10 +129,8 @@ describe('POST /api/lectures/stream', () => {
 
     it('returns 400 when title is missing', async () => {
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const request = createRequest({
-        streamUrl: 'https://cloudfront.net/master.m3u8',
-        courseId: 'course-uuid',
-      });
+      const { title: _, ...bodyWithoutTitle } = validRequestBody;
+      const request = createRequest(bodyWithoutTitle);
 
       const response = await POST(request);
 
@@ -136,35 +139,23 @@ describe('POST /api/lectures/stream', () => {
       expect(data.error).toBe('title is required');
     });
 
-    it('returns 400 when session ID cannot be extracted', async () => {
-      mockExtractPanoptoSessionId.mockImplementation(() => {
-        throw new Error('Invalid URL format');
-      });
-
+    it('returns 400 when sourceUrl is missing', async () => {
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const request = createRequest({
-        streamUrl: 'https://invalid-url.com/',
-        courseId: 'course-uuid',
-        title: 'Test Lecture',
-      });
+      const { sourceUrl: _, ...bodyWithoutSourceUrl } = validRequestBody;
+      const request = createRequest(bodyWithoutSourceUrl);
 
       const response = await POST(request);
 
       expect(response.status).toBe(400);
       const data = await response.json();
-      expect(data.error).toBe('Unable to extract session ID from URL');
-      expect(data.details).toBe('Invalid URL format');
+      expect(data.error).toBe('sourceUrl is required');
     });
   });
 
   describe('successful upload', () => {
     it('returns 202 and creates lecture when new', async () => {
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const request = createRequest({
-        streamUrl: 'https://cloudfront.net/master.m3u8',
-        courseId: 'course-uuid',
-        title: 'Test Lecture',
-      });
+      const request = createRequest(validRequestBody);
 
       const response = await POST(request);
 
@@ -176,44 +167,27 @@ describe('POST /api/lectures/stream', () => {
       expect(data.created).toBe(true);
     });
 
-    it('extracts session ID from panoptoUrl when provided', async () => {
-      const { POST } = await import('@/app/api/lectures/stream/route');
-      const request = createRequest({
-        streamUrl: 'https://cloudfront.net/master.m3u8',
-        courseId: 'course-uuid',
-        title: 'Test Lecture',
-        panoptoUrl: 'https://panopto.com/viewer?id=session-from-panopto',
-      });
-
-      await POST(request);
-
-      expect(mockExtractPanoptoSessionId).toHaveBeenCalledWith(
-        'https://panopto.com/viewer?id=session-from-panopto'
-      );
-    });
-
-    it('extracts session ID from streamUrl when panoptoUrl not provided', async () => {
-      const { POST } = await import('@/app/api/lectures/stream/route');
-      const request = createRequest({
-        streamUrl: 'https://cloudfront.net/session-123/master.m3u8',
-        courseId: 'course-uuid',
-        title: 'Test Lecture',
-      });
-
-      await POST(request);
-
-      expect(mockExtractPanoptoSessionId).toHaveBeenCalledWith(
-        'https://cloudfront.net/session-123/master.m3u8'
-      );
-    });
-
     it('calls checkAndCreateLecture with correct parameters', async () => {
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const request = createRequest({
-        streamUrl: 'https://cloudfront.net/master.m3u8',
+      const request = createRequest(validRequestBody);
+
+      await POST(request);
+
+      expect(mockCheckAndCreateLecture).toHaveBeenCalledWith('user_123', {
         courseId: 'course-uuid',
+        panoptoSessionId: 'session-123',
         title: 'Test Lecture',
         panoptoUrl: 'https://panopto.com/viewer?id=session-123',
+        streamUrl: 'https://cloudfront.net/master.m3u8',
+        durationSeconds: undefined,
+      });
+    });
+
+    it('passes duration when provided', async () => {
+      const { POST } = await import('@/app/api/lectures/stream/route');
+      const request = createRequest({
+        ...validRequestBody,
+        duration: 3600,
       });
 
       await POST(request);
@@ -224,16 +198,13 @@ describe('POST /api/lectures/stream', () => {
         title: 'Test Lecture',
         panoptoUrl: 'https://panopto.com/viewer?id=session-123',
         streamUrl: 'https://cloudfront.net/master.m3u8',
+        durationSeconds: 3600,
       });
     });
 
     it('triggers async download and processing for new lectures', async () => {
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const request = createRequest({
-        streamUrl: 'https://cloudfront.net/master.m3u8',
-        courseId: 'course-uuid',
-        title: 'Test Lecture',
-      });
+      const request = createRequest(validRequestBody);
 
       await POST(request);
 
@@ -254,11 +225,7 @@ describe('POST /api/lectures/stream', () => {
       });
 
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const request = createRequest({
-        streamUrl: 'https://cloudfront.net/master.m3u8',
-        courseId: 'course-uuid',
-        title: 'Test Lecture',
-      });
+      const request = createRequest(validRequestBody);
 
       const response = await POST(request);
 
@@ -275,11 +242,7 @@ describe('POST /api/lectures/stream', () => {
       });
 
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const request = createRequest({
-        streamUrl: 'https://cloudfront.net/master.m3u8',
-        courseId: 'course-uuid',
-        title: 'Test Lecture',
-      });
+      const request = createRequest(validRequestBody);
 
       await POST(request);
 

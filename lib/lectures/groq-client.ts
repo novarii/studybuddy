@@ -4,6 +4,8 @@
  * Uses Groq's fast serverless API for transcription - 216x real-time speed,
  * pay only for audio minutes processed ($0.04/hour).
  *
+ * Automatically uses chunking for files over 20MB (Groq limit is 25MB).
+ *
  * @see https://console.groq.com/docs/speech-text
  */
 
@@ -16,12 +18,19 @@ import {
   TranscriptionError,
   WhisperSegment,
 } from './types';
+import { transcribeWithChunking } from './audio-chunking';
 
 /**
  * Groq Whisper model to use.
  * whisper-large-v3-turbo: Fast, cheap ($0.04/hr), good quality
  */
 const GROQ_MODEL = 'whisper-large-v3-turbo';
+
+/**
+ * Maximum file size for direct upload.
+ * Set to 10MB since we experienced connection issues at 18MB.
+ */
+const MAX_DIRECT_UPLOAD_SIZE = 10 * 1024 * 1024;
 
 /**
  * Get Groq client instance.
@@ -63,9 +72,7 @@ function getGroqClient(): Groq {
 export async function transcribeAudio(
   audioFilePath: string
 ): Promise<TranscriptionResult> {
-  const groq = getGroqClient();
-
-  // Get file size for logging
+  // Get file size
   let fileSize: number;
   try {
     const stats = await stat(audioFilePath);
@@ -78,7 +85,18 @@ export async function transcribeAudio(
   }
 
   const fileName = audioFilePath.split('/').pop() || 'audio.mp3';
-  console.log('[Groq] Uploading file:', fileName, 'size:', (fileSize / 1024 / 1024).toFixed(2), 'MB');
+  const fileSizeMB = fileSize / 1024 / 1024;
+
+  // Use chunking for large files
+  if (fileSize > MAX_DIRECT_UPLOAD_SIZE) {
+    console.log(`[Groq] File ${fileName} is ${fileSizeMB.toFixed(2)}MB - using chunking`);
+    return transcribeWithChunking(audioFilePath);
+  }
+
+  // Direct upload for small files
+  console.log('[Groq] Uploading file:', fileName, 'size:', fileSizeMB.toFixed(2), 'MB');
+
+  const groq = getGroqClient();
 
   try {
     // Use fs.createReadStream as recommended in Groq SDK docs

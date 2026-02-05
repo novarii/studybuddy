@@ -71,6 +71,7 @@ export interface CreateLectureOptions {
   title: string;
   panoptoUrl?: string;
   streamUrl?: string;
+  durationSeconds?: number;
 }
 
 /**
@@ -92,13 +93,25 @@ export async function checkAndCreateLecture(
   options: CreateLectureOptions
 ): Promise<DeduplicationResult> {
   const { courseId, panoptoSessionId, title, panoptoUrl, streamUrl } = options;
+  const durationSeconds = options.durationSeconds ? Math.round(options.durationSeconds) : undefined;
 
   // Check for existing lecture
   const existing = await findExistingLecture(courseId, panoptoSessionId);
 
   if (existing) {
-    // Lecture exists - just create user link
+    // Create user link regardless
     await ensureUserLectureLink(userId, existing.id);
+
+    // If previous attempt failed, allow retry
+    if (existing.status === 'failed') {
+      // Reset status for retry
+      await db
+        .update(lectures)
+        .set({ status: 'pending', errorMessage: null, updatedAt: new Date() })
+        .where(eq(lectures.id, existing.id));
+      return { lecture: { ...existing, status: 'pending' }, isNew: true };
+    }
+
     return { lecture: existing, isNew: false };
   }
 
@@ -111,6 +124,7 @@ export async function checkAndCreateLecture(
       title,
       panoptoUrl,
       streamUrl,
+      durationSeconds,
       status: 'pending',
     })
     .returning();

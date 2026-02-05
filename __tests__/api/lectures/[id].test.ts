@@ -34,7 +34,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { deleteLectureChunks } from '@/lib/lectures/pipeline';
 
-describe('GET /api/lectures/[id]', () => {
+describe('GET /api/lectures/jobs/[id]', () => {
   const mockAuth = auth as unknown as ReturnType<typeof vi.fn>;
   const mockFindFirstLectures = db.query.lectures.findFirst as ReturnType<typeof vi.fn>;
   const mockFindFirstUserLectures = db.query.userLectures.findFirst as ReturnType<typeof vi.fn>;
@@ -68,8 +68,8 @@ describe('GET /api/lectures/[id]', () => {
   });
 
   async function makeGetRequest(lectureId: string) {
-    const { GET } = await import('@/app/api/lectures/[id]/route');
-    const request = new Request(`http://localhost/api/lectures/${lectureId}`);
+    const { GET } = await import('@/app/api/lectures/jobs/[id]/route');
+    const request = new Request(`http://localhost/api/lectures/jobs/${lectureId}`);
     return GET(request, { params: Promise.resolve({ id: lectureId }) });
   }
 
@@ -150,7 +150,7 @@ describe('GET /api/lectures/[id]', () => {
   });
 });
 
-describe('DELETE /api/lectures/[id]', () => {
+describe('DELETE /api/lectures/jobs/[id]', () => {
   const mockAuth = auth as unknown as ReturnType<typeof vi.fn>;
   const mockFindFirstLectures = db.query.lectures.findFirst as ReturnType<typeof vi.fn>;
   const mockFindFirstUserLectures = db.query.userLectures.findFirst as ReturnType<typeof vi.fn>;
@@ -183,8 +183,8 @@ describe('DELETE /api/lectures/[id]', () => {
   });
 
   async function makeDeleteRequest(lectureId: string) {
-    const { DELETE } = await import('@/app/api/lectures/[id]/route');
-    const request = new Request(`http://localhost/api/lectures/${lectureId}`, {
+    const { DELETE } = await import('@/app/api/lectures/jobs/[id]/route');
+    const request = new Request(`http://localhost/api/lectures/jobs/${lectureId}`, {
       method: 'DELETE',
     });
     return DELETE(request, { params: Promise.resolve({ id: lectureId }) });

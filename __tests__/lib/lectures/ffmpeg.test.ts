@@ -276,13 +276,18 @@ describe('FFmpeg Integration', () => {
       expect(result.outputPath).toBe('/output/audio.m4a');
       expect(result.durationSeconds).toBe(1800);
 
-      // Check ffmpeg was called with HLS URL
+      // Check ffmpeg was called with optimized HLS download args
       expect(mockSpawn).toHaveBeenCalledWith('ffmpeg', [
-        '-y',
+        '-analyzeduration', '0',
+        '-probesize', '32',
         '-i', hlsUrl,
+        '-map', '0:a:0',
         '-vn',
+        '-ar', '16000',
+        '-ac', '1',
         '-acodec', 'aac',
-        '-b:a', '128k',
+        '-b:a', '64k',
+        '-y',
         '/output/audio.m4a',
       ]);
     });
