@@ -1,50 +1,11 @@
 import type { Course, Document, Lecture, ChatSession, StoredMessage, RAGSource } from "@/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-
 type FetchOptions = RequestInit & {
   token?: string;
 };
 
-async function fetchWithAuth<T>(
-  endpoint: string,
-  options: FetchOptions = {}
-): Promise<T> {
-  const { token, ...fetchOptions } = options;
-
-  const headers: HeadersInit = {
-    ...(fetchOptions.headers || {}),
-  };
-
-  if (token) {
-    (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
-  }
-
-  // Don't set Content-Type for FormData (browser sets it with boundary)
-  if (!(fetchOptions.body instanceof FormData)) {
-    (headers as Record<string, string>)["Content-Type"] = "application/json";
-  }
-
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...fetchOptions,
-    headers,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: "Request failed" }));
-    throw new Error(error.detail || error.error || `HTTP ${response.status}`);
-  }
-
-  // Handle 204 No Content
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json();
-}
-
 /**
- * Fetch helper for local API routes (no API_BASE prefix)
+ * Fetch helper for local API routes
  */
 async function fetchLocal<T>(
   endpoint: string,
@@ -90,52 +51,10 @@ export type DocumentUploadResponse = {
 
 export type UploadProgressCallback = (progress: number) => void;
 
-function uploadWithProgress(
-  endpoint: string,
-  formData: FormData,
-  token: string,
-  onProgress?: UploadProgressCallback
-): Promise<DocumentUploadResponse> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-
-    xhr.upload.addEventListener("progress", (event) => {
-      if (event.lengthComputable && onProgress) {
-        const progress = Math.round((event.loaded / event.total) * 100);
-        onProgress(progress);
-      }
-    });
-
-    xhr.addEventListener("load", () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          resolve(JSON.parse(xhr.responseText));
-        } catch {
-          reject(new Error("Invalid response"));
-        }
-      } else {
-        try {
-          const error = JSON.parse(xhr.responseText);
-          reject(new Error(error.detail || error.error || `HTTP ${xhr.status}`));
-        } catch {
-          reject(new Error(`HTTP ${xhr.status}`));
-        }
-      }
-    });
-
-    xhr.addEventListener("error", () => reject(new Error("Network error")));
-    xhr.addEventListener("abort", () => reject(new Error("Upload cancelled")));
-
-    xhr.open("POST", `${API_BASE}${endpoint}`);
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-    xhr.send(formData);
-  });
-}
-
 /**
- * Upload with progress for local API routes (no API_BASE prefix)
+ * Upload with progress tracking via XHR
  */
-function uploadWithProgressLocal(
+function uploadWithProgress(
   endpoint: string,
   formData: FormData,
   token: string,
@@ -282,14 +201,8 @@ export const api = {
       const formData = new FormData();
       formData.append("courseId", courseId);
       formData.append("file", file);
-      return uploadWithProgressLocal("/api/documents", formData, token, onProgress);
+      return uploadWithProgress("/api/documents", formData, token, onProgress);
     },
-
-    /**
-     * Get document details
-     */
-    get: (token: string, documentId: string) =>
-      fetchWithAuth<Document>(`/documents/${documentId}`, { token }),
 
     /**
      * Delete a document (uses local API route)
@@ -332,11 +245,6 @@ export const api = {
       }));
     },
 
-    /**
-     * Get lecture details
-     */
-    get: (token: string, lectureId: string) =>
-      fetchWithAuth<Lecture>(`/lectures/${lectureId}`, { token }),
   },
 
   sessions: {
