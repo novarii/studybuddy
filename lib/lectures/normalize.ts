@@ -122,14 +122,53 @@ export function detectGarbage(text: string): boolean {
 }
 
 /**
+ * Remove duplicate paragraphs/sentences from text.
+ *
+ * Whisper sometimes repeats entire paragraphs when audio loops or
+ * during chunk merging. This removes exact and near-duplicate sentences.
+ */
+export function removeDuplicateSentences(text: string): string {
+  // Split into sentences (roughly)
+  const sentences = text.split(/(?<=[.!?])\s+/);
+
+  if (sentences.length < 2) {
+    return text;
+  }
+
+  const seen = new Set<string>();
+  const unique: string[] = [];
+
+  for (const sentence of sentences) {
+    // Normalize for comparison: lowercase, remove extra spaces
+    const normalized = sentence.toLowerCase().replace(/\s+/g, ' ').trim();
+
+    // Skip if too short
+    if (normalized.length < 20) {
+      unique.push(sentence);
+      continue;
+    }
+
+    // Check if we've seen this sentence (or very similar)
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      unique.push(sentence);
+    }
+  }
+
+  return unique.join(' ');
+}
+
+/**
  * Normalize a single Whisper segment.
  *
- * - Removes filler words
+ * - Removes filler words and hallucinations
+ * - Removes duplicate sentences
  * - Marks garbage segments with empty text
  * - Preserves original timestamps
  */
 export function normalizeSegment(segment: WhisperSegment): WhisperSegment {
-  const cleaned = removeFillerWords(segment.text);
+  let cleaned = removeFillerWords(segment.text);
+  cleaned = removeDuplicateSentences(cleaned);
   const isGarbage = detectGarbage(cleaned);
 
   return {

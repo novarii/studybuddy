@@ -84,7 +84,7 @@ The `CourseSyncService` scrapes courses from CDCS (University of Rochester Cours
   - Section deduplication (ACC 201-1, ACC 201-2 → ACC 201)
   - Multi-instructor merging (semicolon-separated)
   - Stale course deletion with 80% safety threshold
-- **Trigger:** Scheduled cron job (weekly)
+- **Trigger:** Scheduled cron job (monthly)
 
 ## Course Sync (Cron Job)
 
@@ -111,7 +111,7 @@ Configure in `vercel.json`:
   "crons": [
     {
       "path": "/api/cron/sync-courses",
-      "schedule": "0 6 * * 1"  // Weekly on Monday at 6am
+      "schedule": "0 6 1 * *"  // Monthly on the 1st at 6am UTC
     }
   ]
 }
