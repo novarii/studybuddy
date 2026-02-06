@@ -42,6 +42,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({
 
   return (
     <Streamdown
+      mode="streaming"
       isAnimating={isStreaming}
       className={cn(
         "prose prose-sm dark:prose-invert max-w-none",

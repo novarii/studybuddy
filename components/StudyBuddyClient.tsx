@@ -71,8 +71,6 @@ export const StudyBuddyClient = () => {
     messages,
     isLoading: isChatLoading,
     isLoadingHistory,
-    inputValue,
-    setInputValue,
     sendMessage,
     deleteCourseHistory,
     error: chatError,
@@ -210,7 +208,7 @@ export const StudyBuddyClient = () => {
   };
 
   // Modified sendMessage to create session if none exists
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async (message: string) => {
     let sessionId = currentSessionId;
 
     // If no session, create one first
@@ -220,9 +218,9 @@ export const StudyBuddyClient = () => {
       setCurrentSessionId(sessionId);
     }
 
-    // Pass sessionId directly to sendMessage (handles race condition)
-    sendMessage(sessionId);
-  };
+    // Pass sessionId and message directly to sendMessage
+    sendMessage(message, sessionId);
+  }, [currentSessionId, createSession, sendMessage]);
 
   const handleCitationClick = useCallback((source: RAGSource) => {
     if (source.source_type === "slide" && source.document_id && source.slide_number) {
@@ -303,7 +301,6 @@ export const StudyBuddyClient = () => {
             isDragging={isDragging}
             uploads={uploads}
             messages={messages}
-            inputValue={inputValue}
             isLoading={isChatLoading}
             isLoadingHistory={isLoadingHistory}
             onDragEnter={handleDragEnter}
@@ -314,7 +311,6 @@ export const StudyBuddyClient = () => {
             onRemoveUpload={removeUpload}
             onClearCompleted={clearCompleted}
             onOpenMaterials={() => setIsMaterialsDialogOpen(true)}
-            onInputChange={setInputValue}
             onSendMessage={handleSendMessage}
             onCitationClick={handleCitationClick}
           />
