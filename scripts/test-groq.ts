@@ -34,7 +34,7 @@ async function main() {
 
   console.log('Done in', Date.now() - start, 'ms');
   console.log('Text:', transcription.text);
-  console.log('Segments:', (transcription as any).segments?.length || 0);
+  console.log('Segments:', (transcription as { segments?: unknown[] }).segments?.length || 0);
 }
 
 main().catch((e) => {

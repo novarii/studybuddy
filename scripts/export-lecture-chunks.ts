@@ -27,9 +27,9 @@ async function main() {
     process.exit(0);
   }
 
-  const output = result.rows.map((row: any) => {
-    const startSec = parseFloat(row.start_seconds) || 0;
-    const endSec = parseFloat(row.end_seconds) || 0;
+  const output = result.rows.map((row: Record<string, unknown>) => {
+    const startSec = parseFloat(String(row.start_seconds)) || 0;
+    const endSec = parseFloat(String(row.end_seconds)) || 0;
     const startMin = Math.floor(startSec / 60);
     const startSecRem = Math.floor(startSec % 60);
     const endMin = Math.floor(endSec / 60);

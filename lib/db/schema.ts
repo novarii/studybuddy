@@ -94,6 +94,63 @@ export type NewChatMessage = typeof chatMessages.$inferInsert;
 export type MessageSource = typeof messageSources.$inferSelect;
 export type NewMessageSource = typeof messageSources.$inferInsert;
 
+// Deduplicated sources per course (shared across messages)
+export const courseSources = aiSchema.table(
+  'course_sources',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    courseId: uuid('course_id').notNull(),
+    // Unique identifier for this source (e.g., "doc_xxx_slide_5" or "lec_xxx_120_180")
+    sourceKey: text('source_key').notNull(),
+    sourceType: text('source_type').notNull(), // 'slide' | 'lecture'
+    // Document source fields
+    documentId: uuid('document_id'),
+    slideNumber: integer('slide_number'),
+    // Lecture source fields
+    lectureId: uuid('lecture_id'),
+    startSeconds: real('start_seconds'),
+    endSeconds: real('end_seconds'),
+    // Shared metadata
+    contentPreview: text('content_preview'),
+    title: text('title'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('idx_course_sources_course_id').on(table.courseId),
+    uniqueIndex('idx_course_sources_unique').on(table.courseId, table.sourceKey),
+  ]
+);
+
+// Lightweight join table linking messages to deduplicated sources
+export const messageSourceRefs = aiSchema.table(
+  'message_source_refs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    messageId: text('message_id').notNull(), // UUID stored as text for compatibility
+    sessionId: uuid('session_id').notNull(),
+    courseSourceId: uuid('course_source_id')
+      .notNull()
+      .references(() => courseSources.id, { onDelete: 'cascade' }),
+    chunkNumber: integer('chunk_number').notNull(), // The [1], [2] citation number
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('idx_message_source_refs_message_id').on(table.messageId),
+    index('idx_message_source_refs_session_id').on(table.sessionId),
+    index('idx_message_source_refs_course_source_id').on(table.courseSourceId),
+  ]
+);
+
+export type CourseSource = typeof courseSources.$inferSelect;
+export type NewCourseSource = typeof courseSources.$inferInsert;
+
+export type MessageSourceRef = typeof messageSourceRefs.$inferSelect;
+export type NewMessageSourceRef = typeof messageSourceRefs.$inferInsert;
+
 export const userApiKeys = aiSchema.table(
   'user_api_keys',
   {

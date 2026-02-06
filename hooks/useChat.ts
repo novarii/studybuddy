@@ -7,16 +7,6 @@ import { useAuth } from "@clerk/nextjs";
 import { api } from "@/lib/api";
 import type { ChatMessage, RAGSource } from "@/types";
 
-// DIAGNOSTIC: Log slow operations
-const logSlow = (label: string, fn: () => void) => {
-  const start = performance.now();
-  fn();
-  const duration = performance.now() - start;
-  if (duration > 50) {
-    console.warn(`[SLOW] ${label}: ${duration.toFixed(1)}ms`);
-  }
-};
-
 export const useChat = (
   courseId: string | undefined,
   sessionId: string | undefined,
@@ -116,7 +106,6 @@ export const useChat = (
     };
 
     loadMessages();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, getCachedToken]);
 
   // Memoize transport - uses ref for sessionId to always get current value

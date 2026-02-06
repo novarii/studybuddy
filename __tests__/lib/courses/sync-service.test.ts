@@ -81,14 +81,10 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 // Mock database
-const mockSelect = vi.fn();
 const mockFrom = vi.fn();
-const mockInsert = vi.fn();
 const mockValues = vi.fn();
 const mockOnConflictDoUpdate = vi.fn();
-const mockDelete = vi.fn();
 const mockWhere = vi.fn();
-const mockInArray = vi.fn();
 
 vi.mock('@/lib/db', () => {
   return {

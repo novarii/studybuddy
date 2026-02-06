@@ -8,6 +8,10 @@ import { ChatsSection } from "./ChatsSection";
 import type { Course, ColorScheme, ChatSession } from "@/types";
 import { cn } from "@/lib/utils";
 
+// Fixed sidebar width
+const SIDEBAR_WIDTH = 280;
+const SIDEBAR_COLLAPSED_WIDTH = 60;
+
 type SidebarProps = {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
@@ -28,10 +32,6 @@ type SidebarProps = {
   onSelectSession: (sessionId: string) => void;
   onNewChat: () => void;
   onDeleteSession: (sessionId: string) => void;
-  // Resize props
-  sidebarWidth: number;
-  isResizing: boolean;
-  onResizeMouseDown: (e: React.MouseEvent) => void;
 };
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -53,29 +53,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectSession,
   onNewChat,
   onDeleteSession,
-  sidebarWidth,
-  isResizing,
-  onResizeMouseDown,
 }) => {
   return (
     <aside
       className={cn(
-        "border-r flex flex-col opacity-0 translate-y-[-1rem] animate-fade-in [--animation-delay:0ms] flex-shrink-0 relative",
-        isResizing ? "" : "transition-all duration-300"
+        "border-r flex flex-col opacity-0 translate-y-[-1rem] animate-fade-in [--animation-delay:0ms] flex-shrink-0",
+        "transition-all duration-300"
       )}
       style={{
         backgroundColor: colors.panel,
         borderColor: colors.border,
-        width: isCollapsed ? 60 : sidebarWidth,
+        width: isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
       }}
     >
-      {/* Resize handle on right edge */}
-      {!isCollapsed && (
-        <div
-          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize z-10 hover:bg-blue-500/50"
-          onMouseDown={onResizeMouseDown}
-        />
-      )}
       {!isCollapsed ? (
         <>
           <header className="flex items-center p-4 border-b" style={{ borderColor: colors.border }}>

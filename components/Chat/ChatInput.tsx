@@ -34,17 +34,12 @@ export function ChatInput({
     }
   }, [isLoading]);
 
-  // Clear input after sending
-  useEffect(() => {
-    if (isLoading) {
-      setLocalInput("");
-    }
-  }, [isLoading]);
-
   const handleSend = useCallback(() => {
     const message = localInput.trim();
     if (message && !isLoading) {
       onSendMessage(message);
+      // Clear input immediately after sending
+      setLocalInput("");
     }
   }, [localInput, isLoading, onSendMessage]);
 

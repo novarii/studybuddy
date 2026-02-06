@@ -237,3 +237,8 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Fix Radix ScrollArea inner div expanding beyond container */
+[data-radix-scroll-area-viewport] > div {
+  display: block !important;
+}

@@ -38,7 +38,7 @@ export const ChatsSection: React.FC<ChatsSectionProps> = ({
   onDeleteSession,
 }) => {
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden">
       {/* Header with New Chat button */}
       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: colors.border }}>
         <span className="text-sm font-medium" style={{ color: colors.primaryText }}>
@@ -57,7 +57,7 @@ export const ChatsSection: React.FC<ChatsSectionProps> = ({
       </div>
 
       {/* Session List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 w-full">
         {isLoading ? (
           <div className="flex items-center justify-center p-4" style={{ color: colors.secondaryText }}>
             <LoaderIcon className="w-4 h-4 animate-spin mr-2" />
@@ -70,11 +70,11 @@ export const ChatsSection: React.FC<ChatsSectionProps> = ({
             Start a new chat!
           </div>
         ) : (
-          <div className="p-2 space-y-1">
+          <div className="p-2 space-y-1 overflow-hidden">
             {sessions.map((session) => (
               <div
                 key={session.session_id}
-                className="group flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors"
+                className="group flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors w-full min-w-0"
                 style={{
                   backgroundColor:
                     currentSessionId === session.session_id

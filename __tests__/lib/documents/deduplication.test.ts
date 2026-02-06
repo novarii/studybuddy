@@ -477,8 +477,8 @@ describe('deduplicateByEmbeddings', () => {
       const vec1 = [1, 0, 0];
       const vec2 = [0.95, 0.3, 0]; // Cosine similarity ≈ 0.95
 
-      // With default 0.95 threshold, might be borderline
-      const similarity = cosineSimilarity(vec1, vec2);
+      // Verify similarity is around expected value (borderline with 0.95 threshold)
+      expect(cosineSimilarity(vec1, vec2)).toBeCloseTo(0.95, 1);
 
       // Use a lower threshold
       const { uniqueIndices: unique1 } = deduplicateByEmbeddings(

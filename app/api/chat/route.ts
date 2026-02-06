@@ -12,9 +12,10 @@ import {
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 
-import { db, chatSessions, chatMessages, messageSources, userApiKeys } from '@/lib/db';
+import { db, chatSessions, chatMessages, userApiKeys } from '@/lib/db';
 import { searchKnowledge, SYSTEM_PROMPT } from '@/lib/ai';
 import { decryptApiKey } from '@/lib/crypto';
+import { saveSourcesWithDedup } from '@/lib/sources/deduplicated-sources';
 import type { RAGSource } from '@/types';
 
 export const maxDuration = 60;
@@ -173,26 +174,20 @@ export async function POST(req: Request) {
             })
             .returning();
 
-          // Save sources if any were collected
+          // Save sources with deduplication at course level
           if (collectedSources.length > 0 && savedAssistantMsg) {
-            await db.insert(messageSources).values(
-              collectedSources.map((source) => ({
-                messageId: savedAssistantMsg.id,
+            try {
+              console.log(`[Chat] Saving ${collectedSources.length} sources for message ${savedAssistantMsg.id}`);
+              await saveSourcesWithDedup(
+                collectedSources,
+                savedAssistantMsg.id,
                 sessionId,
-                sourceId: source.source_id,
-                sourceType: source.source_type,
-                chunkNumber: source.chunk_number,
-                contentPreview: source.content_preview,
-                documentId: source.document_id,
-                slideNumber: source.slide_number,
-                lectureId: source.lecture_id,
-                startSeconds: source.start_seconds,
-                endSeconds: source.end_seconds,
-                courseId: source.course_id,
-                ownerId: userId,
-                title: source.title,
-              }))
-            );
+                courseId
+              );
+              console.log(`[Chat] Sources saved successfully`);
+            } catch (err) {
+              console.error(`[Chat] Failed to save sources:`, err);
+            }
           }
 
           // Update session timestamp

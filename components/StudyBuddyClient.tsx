@@ -96,7 +96,6 @@ export const StudyBuddyClient = () => {
   const { lectures } = useLectures(currentCourseId);
 
   const { panelWidth: rightPanelWidth, isResizing: isRightPanelResizing, handleMouseDown: handleRightPanelMouseDown } = useResizePanel(400, 800, 400, "right");
-  const { panelWidth: sidebarWidth, isResizing: isSidebarResizing, handleMouseDown: handleSidebarMouseDown } = useResizePanel(200, 400, 280, "left");
 
   // Refetch documents when uploads complete
   useEffect(() => {
@@ -291,9 +290,6 @@ export const StudyBuddyClient = () => {
             onSelectSession={handleSelectSession}
             onNewChat={handleNewChat}
             onDeleteSession={handleDeleteSession}
-            sidebarWidth={sidebarWidth}
-            isResizing={isSidebarResizing}
-            onResizeMouseDown={handleSidebarMouseDown}
           />
 
           <MainContent
