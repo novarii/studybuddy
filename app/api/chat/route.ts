@@ -12,9 +12,9 @@ import {
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 
-import { db, chatSessions, chatMessages, userApiKeys } from '@/lib/db';
+import { db, chatSessions, chatMessages } from '@/lib/db';
 import { searchKnowledge, SYSTEM_PROMPT } from '@/lib/ai';
-import { decryptApiKey } from '@/lib/crypto';
+import { getUserApiKey } from '@/lib/api-keys';
 import { saveSourcesWithDedup } from '@/lib/sources/deduplicated-sources';
 import type { RAGSource } from '@/types';
 
@@ -84,20 +84,19 @@ export async function POST(req: Request) {
   // Collected sources during tool execution
   let collectedSources: RAGSource[] = [];
 
-  // Check for user's own API key (BYOK)
-  let apiKey = process.env.OPENROUTER_API_KEY!;
-
-  const userKey = await db.query.userApiKeys.findFirst({
-    where: eq(userApiKeys.userId, userId),
-  });
-
-  if (userKey) {
-    try {
-      apiKey = decryptApiKey(userKey.openrouterKeyEncrypted);
-    } catch {
-      console.error('Failed to decrypt user API key, using shared key');
-      // Fall back to shared key (apiKey remains unchanged)
-    }
+  // Get user's API key (BYOK required)
+  let apiKey: string;
+  try {
+    apiKey = await getUserApiKey(userId);
+  } catch {
+    return Response.json(
+      {
+        error: 'API key required',
+        code: 'NO_API_KEY',
+        message: 'Please connect your OpenRouter API key to use chat.'
+      },
+      { status: 402 }
+    );
   }
 
   const openrouter = createOpenRouter({

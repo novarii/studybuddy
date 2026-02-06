@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { randomBytes, createHash } from 'crypto';
+import { storeVerifier } from '@/lib/auth/pkce-store';
 
 export async function GET() {
   const { userId } = await auth();
@@ -28,6 +29,10 @@ export async function GET() {
     challengeLength: codeChallenge.length,
   });
 
+  // Store verifier in memory (keyed by userId) instead of cookie
+  // This avoids cross-site cookie issues with OAuth redirects
+  storeVerifier(userId, codeVerifier);
+
   const callbackUrl = `${appUrl}/api/openrouter/callback`;
 
   const authUrl = new URL('https://openrouter.ai/auth');
@@ -35,18 +40,10 @@ export async function GET() {
   authUrl.searchParams.set('code_challenge', codeChallenge);
   authUrl.searchParams.set('code_challenge_method', 'S256');
 
-  // Return redirect with code verifier stored in secure cookie
-  // Only use Secure flag in production (HTTPS)
-  const isProduction = process.env.NODE_ENV === 'production';
-  const cookieFlags = isProduction
-    ? 'HttpOnly; Secure; SameSite=Lax; Max-Age=600; Path=/'
-    : 'HttpOnly; SameSite=Lax; Max-Age=600; Path=/';
-
   return new Response(null, {
     status: 302,
     headers: {
       Location: authUrl.toString(),
-      'Set-Cookie': `openrouter_verifier=${codeVerifier}; ${cookieFlags}`,
     },
   });
 }

@@ -1,8 +1,15 @@
 "use client";
 
 import React from "react";
-import { PanelLeftCloseIcon, PanelLeftOpenIcon, SunIcon, MoonIcon } from "lucide-react";
+import { PanelLeftCloseIcon, PanelLeftOpenIcon, SunIcon, MoonIcon, SettingsIcon, LogOutIcon } from "lucide-react";
+import { useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CourseDropdown } from "./CourseDropdown";
 import { ChatsSection } from "./ChatsSection";
 import type { Course, ColorScheme, ChatSession } from "@/types";
@@ -54,6 +61,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNewChat,
   onDeleteSession,
 }) => {
+  const { signOut } = useClerk();
+
+  const handleSignOut = () => {
+    signOut({ redirectUrl: "/sign-in" });
+  };
+
   return (
     <aside
       className={cn(
@@ -122,6 +135,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onNewChat={onNewChat}
             onDeleteSession={onDeleteSession}
           />
+
+          {/* Settings footer */}
+          <div className="mt-auto border-t p-3" style={{ borderColor: colors.border }}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2"
+                  style={{ color: colors.secondaryText }}
+                >
+                  <SettingsIcon className="w-4 h-4" />
+                  Settings
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                style={{ backgroundColor: colors.panel, borderColor: colors.border }}
+              >
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer gap-2"
+                  style={{ color: colors.primaryText }}
+                >
+                  <LogOutIcon className="w-4 h-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </>
       ) : (
         <>
@@ -159,6 +201,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               {isDarkMode ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
             </button>
+          </div>
+
+          {/* Settings footer (collapsed) */}
+          <div className="mt-auto border-t p-3 flex justify-center" style={{ borderColor: colors.border }}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  style={{ color: colors.secondaryText }}
+                >
+                  <SettingsIcon className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="right"
+                align="end"
+                style={{ backgroundColor: colors.panel, borderColor: colors.border }}
+              >
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer gap-2"
+                  style={{ color: colors.primaryText }}
+                >
+                  <LogOutIcon className="w-4 h-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </>
       )}

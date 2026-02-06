@@ -20,6 +20,7 @@ export const useChat = (
   const [sourcesMap, setSourcesMap] = useState<Record<string, RAGSource[]>>({});
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [needsApiKey, setNeedsApiKey] = useState(false);
 
   // Cache getToken in ref to prevent dependency array issues
   // Clerk's getToken reference may change on every render, causing unnecessary re-runs
@@ -168,6 +169,11 @@ export const useChat = (
     },
     onError: (err) => {
       console.error("Chat error:", err);
+      // Check for NO_API_KEY error from the backend
+      // The error message contains the JSON response for fetch errors
+      if (err.message?.includes("NO_API_KEY") || err.message?.includes("API key required")) {
+        setNeedsApiKey(true);
+      }
     },
   });
 
@@ -262,6 +268,11 @@ export const useChat = (
     // This is now handled by changing the id prop
   }, []);
 
+  // Reset needsApiKey flag (called after user connects their key)
+  const clearApiKeyError = useCallback(() => {
+    setNeedsApiKey(false);
+  }, []);
+
   return {
     messages,
     isLoading,
@@ -272,5 +283,7 @@ export const useChat = (
     stop,
     sources: streamingSources,
     error,
+    needsApiKey,
+    clearApiKeyError,
   };
 };
