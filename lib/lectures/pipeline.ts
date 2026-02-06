@@ -17,7 +17,7 @@ import { getUserApiKey } from '@/lib/api-keys/get-user-api-key';
 import { transcribeAudio } from './groq-client';
 import { normalizeTranscript } from './normalize';
 import { chunkTranscript, type TimestampedChunk } from './chunking';
-import { getTempAudioPath, cleanupTempAudio } from './temp-files';
+import { getTempAudioPath, cleanupTempAudio, ensureTempDir } from './temp-files';
 import { downloadAndExtractAudio } from './ffmpeg';
 
 
@@ -242,6 +242,9 @@ export async function downloadAndProcessLecture(
     await updateLectureStatus(lectureId, { status: 'downloading' });
 
     console.log(`[LecturePipeline] Downloading from stream URL: ${streamUrl.substring(0, 100)}...`);
+
+    // Ensure temp directory exists before ffmpeg writes to it
+    await ensureTempDir();
 
     // Download HLS stream and extract audio
     const audioPath = getTempAudioPath(lectureId);

@@ -4,10 +4,10 @@ import path from 'path';
 /**
  * Get the temp storage path for lecture audio files.
  * Reads from environment at runtime for testability.
- * Defaults to ./tmp/lectures if not specified.
+ * Defaults to /tmp/lectures if not specified.
  */
 function getTempPath(): string {
-  return process.env.LECTURE_TEMP_PATH || './tmp/lectures';
+  return process.env.LECTURE_TEMP_PATH || '/tmp/lectures';
 }
 
 /**
