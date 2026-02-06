@@ -41,6 +41,7 @@ A **spec** is an atomic source of truth document. It can contain:
 | [message-sources-persistence.md](./message-sources-persistence.md) | RAG sources persistence | Load sources with messages, historical citations |
 | [e2e-testing.md](./e2e-testing.md) | E2E testing setup | Playwright, Clerk auth, test patterns |
 | [lecture-citations.md](./lecture-citations.md) | Lecture citation links | Sources in stream, clickable timestamps, video navigation |
+| [streaming-performance.md](./streaming-performance.md) | Streaming performance | Input isolation, token caching, Shiki optimization |
 
 ---
 
