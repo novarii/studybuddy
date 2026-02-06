@@ -241,10 +241,10 @@ async function searchLectures(options: LectureSearchOptions): Promise<LectureSea
  * @returns Context string and source metadata for RAG
  */
 export async function searchKnowledge(options: SearchOptions): Promise<SearchResult> {
-  const { query, userId, courseId, documentId, lectureId } = options;
+  const { query, userId, courseId, documentId, lectureId, apiKey } = options;
 
-  // Get embedding for the query
-  const queryEmbedding = await embed(query);
+  // Get embedding for the query (uses BYOK key if provided)
+  const queryEmbedding = await embed(query, apiKey);
 
   // Search both knowledge bases in parallel
   const [slideResults, lectureResults] = await Promise.all([

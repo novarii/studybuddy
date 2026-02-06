@@ -127,6 +127,7 @@ export async function POST(req: Request) {
                 courseId,
                 documentId,
                 lectureId,
+                apiKey,
               });
               collectedSources = sources;
 

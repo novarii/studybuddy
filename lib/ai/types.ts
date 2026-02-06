@@ -19,6 +19,7 @@ export interface SearchOptions {
   courseId: string;
   documentId?: string;
   lectureId?: string;
+  apiKey?: string;
 }
 
 /**
