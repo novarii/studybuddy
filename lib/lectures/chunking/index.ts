@@ -12,7 +12,7 @@ import { chunkBySemantic } from './semantic';
 // Re-export types for convenience
 export type { TimestampedChunk } from './time-based';
 export { chunkByTime } from './time-based';
-export { chunkBySemantic, textSimilarity, matchChunksToTimestamps } from './semantic';
+export { chunkBySemantic, resolveChunksFromTimestamps } from './semantic';
 
 /**
  * Chunk a transcript using the best available strategy.

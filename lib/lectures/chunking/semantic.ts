@@ -1,8 +1,9 @@
 /**
  * Semantic chunking for lecture transcripts using LLM topic detection.
  *
- * Uses an LLM to detect topic boundaries in transcripts, producing
- * more meaningful chunks than time-based splitting.
+ * Uses an LLM to detect topic boundaries via timestamp markers,
+ * avoiding the need to echo back verbatim transcript text in JSON.
+ * This prevents malformed JSON on long transcripts (~38K+ chars).
  */
 
 import { generateObject } from 'ai';
@@ -19,179 +20,150 @@ import type { TimestampedChunk } from './time-based';
 const CHUNKING_MODEL = 'google/gemini-2.5-flash-lite';
 
 /**
- * Zod schema for LLM-generated semantic chunks.
+ * Zod schema for LLM-generated semantic chunks (timestamp boundaries).
  */
 export const SemanticChunksSchema = z.object({
   chunks: z.array(
     z.object({
       title: z.string().describe('Brief topic title (3-6 words)'),
-      text: z.string().describe('The verbatim transcript text for this topic'),
+      start: z.number().describe('Start timestamp in seconds'),
+      end: z.number().describe('End timestamp in seconds'),
     })
   ),
 });
 
 /**
- * Type for a semantic chunk from LLM (before timestamp matching).
+ * Type for a semantic chunk from LLM (timestamp boundaries only).
  */
 export type SemanticChunk = z.infer<typeof SemanticChunksSchema>['chunks'][number];
 
 /**
- * System prompt for the LLM to detect topic boundaries.
+ * System prompt for the LLM to detect topic boundaries via timestamps.
  */
 const CHUNKING_SYSTEM_PROMPT = `You are analyzing a lecture transcript to identify topic boundaries.
+
+The transcript is formatted as timestamped segments:
+[0.0] First segment text here
+[13.4] Second segment text here
+...
 
 Split the transcript into logical chunks where each chunk covers ONE topic or concept.
 Return the chunks with:
 - title: A brief 3-6 word title for the topic
-- text: Copy the EXACT verbatim text from the transcript for this chunk (do not paraphrase or summarize)
+- start: The timestamp (in seconds) where this topic begins
+- end: The timestamp (in seconds) where this topic ends
 
 Important:
 - Each chunk should be a coherent topic (not arbitrary time splits)
-- The text field MUST contain the exact words from the transcript, not a summary
+- Chunks must be contiguous: the first chunk starts at the earliest timestamp, the last chunk ends at the latest timestamp
 - Typical chunk length: 1-5 minutes of content
 - Look for topic transitions: "Now let's talk about...", "Moving on to...", etc.
-- If the transcript is short, it's okay to return just one chunk`;
+- If the transcript is short, it's okay to return just one chunk
+- Do NOT include transcript text in your response — only return titles and timestamp boundaries`;
 
 /**
- * Calculate text similarity between two strings (0.0 to 1.0).
- * Uses word overlap (Jaccard-like similarity).
+ * Find the index of the segment whose start time is closest to the target.
  */
-export function textSimilarity(text1: string, text2: string): number {
-  // Handle empty strings
-  if (!text1 && !text2) return 1.0;
-  if (!text1 || !text2) return 0.0;
+export function findClosestSegmentIndex(
+  segments: WhisperSegment[],
+  targetTimestamp: number
+): number {
+  let closestIndex = 0;
+  let closestDiff = Math.abs(segments[0].start - targetTimestamp);
 
-  // Normalize: lowercase and split into words
-  const normalize = (text: string) =>
-    text
-      .toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .split(/\s+/)
-      .filter((w) => w.length > 0);
-
-  const words1 = new Set(normalize(text1));
-  const words2 = new Set(normalize(text2));
-
-  if (words1.size === 0 && words2.size === 0) return 1.0;
-  if (words1.size === 0 || words2.size === 0) return 0.0;
-
-  // Count intersection
-  let intersection = 0;
-  for (const word of words1) {
-    if (words2.has(word)) {
-      intersection++;
+  for (let i = 1; i < segments.length; i++) {
+    const diff = Math.abs(segments[i].start - targetTimestamp);
+    if (diff < closestDiff) {
+      closestDiff = diff;
+      closestIndex = i;
     }
   }
 
-  // Jaccard similarity: intersection / union
-  const union = words1.size + words2.size - intersection;
-  return intersection / union;
+  return closestIndex;
 }
 
 /**
  * Detect topic boundaries using LLM analysis.
  *
- * @param transcriptText - The full transcript text
+ * @param segments - Whisper segments with timestamps
  * @param apiKey - OpenRouter API key (user's BYOK key)
- * @returns Array of semantic chunks with title and text
+ * @returns Array of semantic chunks with title and timestamp boundaries
  */
 export async function detectTopicBoundaries(
-  transcriptText: string,
+  segments: WhisperSegment[],
   apiKey: string
 ): Promise<SemanticChunk[]> {
   const openrouter = createOpenRouter({ apiKey });
+
+  // Format segments as timestamped lines
+  const prompt = segments
+    .map((s) => `[${s.start.toFixed(1)}] ${s.text}`)
+    .join('\n');
 
   const result = await generateObject({
     model: openrouter(CHUNKING_MODEL),
     schema: SemanticChunksSchema,
     system: CHUNKING_SYSTEM_PROMPT,
-    prompt: transcriptText,
+    prompt,
   });
 
   return result.object.chunks;
 }
 
 /**
- * Match LLM-generated chunks to Whisper segments for accurate timestamps.
+ * Resolve LLM timestamp boundaries into full TimestampedChunks
+ * by extracting text from the matching WhisperSegments.
  *
- * Uses greedy text accumulation to find segment boundaries that
- * correspond to each LLM chunk.
- *
- * @param llmChunks - Chunks from LLM with title and text
- * @param whisperSegments - Segments from Whisper with timestamps
+ * @param llmChunks - Chunks from LLM with title and timestamp boundaries
+ * @param segments - Whisper segments with timestamps and text
  * @returns Timestamped chunks ready for embedding
  */
-export function matchChunksToTimestamps(
+export function resolveChunksFromTimestamps(
   llmChunks: SemanticChunk[],
-  whisperSegments: WhisperSegment[]
+  segments: WhisperSegment[]
 ): TimestampedChunk[] {
-  if (llmChunks.length === 0 || whisperSegments.length === 0) {
+  if (llmChunks.length === 0 || segments.length === 0) {
     return [];
   }
 
   const results: TimestampedChunk[] = [];
-  let segmentIndex = 0;
 
   for (let chunkIndex = 0; chunkIndex < llmChunks.length; chunkIndex++) {
     const chunk = llmChunks[chunkIndex];
-    const matchedSegments: WhisperSegment[] = [];
-    let accumulatedText = '';
     const isLastChunk = chunkIndex === llmChunks.length - 1;
 
-    // For the last chunk, consume all remaining segments
+    const startIdx = findClosestSegmentIndex(segments, chunk.start);
+
+    let endIdx: number;
     if (isLastChunk) {
-      while (segmentIndex < whisperSegments.length) {
-        matchedSegments.push(whisperSegments[segmentIndex]);
-        segmentIndex++;
-      }
+      // Last chunk always extends to the final segment
+      endIdx = segments.length - 1;
     } else {
-      // Greedily match segments until we've covered the chunk text
-      while (segmentIndex < whisperSegments.length) {
-        const segment = whisperSegments[segmentIndex];
-        matchedSegments.push(segment);
-        accumulatedText =
-          accumulatedText + (accumulatedText ? ' ' : '') + segment.text;
-
-        segmentIndex++;
-
-        // Check if we've matched enough text (using fuzzy similarity)
-        const similarity = textSimilarity(accumulatedText.trim(), chunk.text);
-
-        // If similarity is high enough, we've found the boundary
-        if (similarity > 0.85) {
-          break;
-        }
-
-        // Check if adding more text is getting us further from the target
-        // (i.e., we've passed the chunk boundary)
-        if (matchedSegments.length > 1) {
-          const prevText = accumulatedText
-            .split(' ')
-            .slice(0, -segment.text.split(' ').length)
-            .join(' ');
-          const prevSimilarity = textSimilarity(prevText.trim(), chunk.text);
-
-          // If similarity is decreasing and was decent, stop
-          if (prevSimilarity > 0.7 && similarity < prevSimilarity) {
-            // Remove last segment (it belongs to next chunk)
-            matchedSegments.pop();
-            segmentIndex--; // Rewind to reprocess this segment for next chunk
-            break;
-          }
-        }
-      }
+      // Use the next chunk's start to find where this chunk ends.
+      // The segment at the next chunk's start belongs to the next chunk,
+      // so this chunk ends at the segment just before it.
+      const nextStartIdx = findClosestSegmentIndex(
+        segments,
+        llmChunks[chunkIndex + 1].start
+      );
+      endIdx = Math.max(startIdx, nextStartIdx - 1);
     }
 
-    if (matchedSegments.length > 0) {
-      results.push({
-        title: chunk.title,
-        text: chunk.text,
-        start_seconds: matchedSegments[0].start,
-        end_seconds: matchedSegments[matchedSegments.length - 1].end,
-        chunk_index: chunkIndex,
-        segment_ids: matchedSegments.map((s) => s.id),
-      });
-    }
+    const matchedSegments = segments.slice(startIdx, endIdx + 1);
+
+    const text = matchedSegments
+      .map((s) => s.text)
+      .filter((t) => t.trim().length > 0)
+      .join(' ');
+
+    results.push({
+      title: chunk.title,
+      text,
+      start_seconds: matchedSegments[0].start,
+      end_seconds: matchedSegments[matchedSegments.length - 1].end,
+      chunk_index: chunkIndex,
+      segment_ids: matchedSegments.map((s) => s.id),
+    });
   }
 
   return results;
@@ -212,15 +184,9 @@ export async function chunkBySemantic(
     return [];
   }
 
-  // Combine segment text for LLM analysis
-  const transcriptText = segments
-    .map((s) => s.text)
-    .filter((t) => t.trim().length > 0)
-    .join(' ');
+  // Get topic boundaries from LLM (passing segments directly)
+  const llmChunks = await detectTopicBoundaries(segments, apiKey);
 
-  // Get topic boundaries from LLM
-  const llmChunks = await detectTopicBoundaries(transcriptText, apiKey);
-
-  // Match chunks back to timestamps
-  return matchChunksToTimestamps(llmChunks, segments);
+  // Resolve timestamp boundaries to full chunks with text
+  return resolveChunksFromTimestamps(llmChunks, segments);
 }
