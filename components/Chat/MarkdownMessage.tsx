@@ -40,6 +40,10 @@ export const MarkdownMessage = memo(function MarkdownMessage({
     return preprocessCitations(content);
   }, [content]);
 
+  // Disable expensive features during streaming for better performance
+  // They'll be enabled once streaming completes
+  const enableSyntaxHighlighting = !isStreaming;
+
   return (
     <Streamdown
       mode="streaming"
@@ -57,9 +61,9 @@ export const MarkdownMessage = memo(function MarkdownMessage({
         "prose-a:text-primary prose-a:underline-offset-2",
         className
       )}
-      shikiTheme={["github-light", "github-dark"]}
-      controls={{ code: true, table: true, mermaid: false }}
-      plugins={{ math: mathPlugin }}
+      shikiTheme={enableSyntaxHighlighting ? ["github-light", "github-dark"] : undefined}
+      controls={{ code: enableSyntaxHighlighting, table: true, mermaid: false }}
+      plugins={enableSyntaxHighlighting ? { math: mathPlugin } : {}}
       components={{
         // Custom link handler for citations [n]
         a: ({ href, children, ...props }) => {
