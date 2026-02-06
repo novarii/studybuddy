@@ -145,9 +145,11 @@ async function splitAudioIntoChunks(
     const startSeconds = startMs / 1000;
     const durationChunkSeconds = (endMs - startMs) / 1000;
 
-    const chunkPath = join(chunksDir, `chunk_${i.toString().padStart(3, '0')}.mp3`);
+    const chunkPath = join(chunksDir, `chunk_${i.toString().padStart(3, '0')}.flac`);
 
     // Extract chunk using FFmpeg
+    // Keep stereo to avoid destroying SDI captures where one channel is noise.
+    // Use FLAC (lossless) as recommended by Groq docs.
     await new Promise<void>((resolve, reject) => {
       const ffmpeg = spawn('ffmpeg', [
         '-y',
@@ -155,9 +157,7 @@ async function splitAudioIntoChunks(
         '-i', audioPath,
         '-t', durationChunkSeconds.toString(),
         '-ar', '16000',
-        '-ac', '1',
-        '-c:a', 'libmp3lame',
-        '-b:a', '32k',
+        '-c:a', 'flac',
         chunkPath,
       ]);
 

@@ -1070,6 +1070,50 @@ If `ai.lecture_chunks_knowledge` has existing data:
 
 ---
 
+## Audio Preprocessing for Chunking
+
+**Decision (2026-02-06):** Use FLAC (lossless) and preserve stereo when splitting audio into chunks for Groq transcription.
+
+### Problem
+
+Lectures from Panopto SDI captures can have speech on one stereo channel and noise/garbage on the other. The original chunking used `-ac 1` (mono downmix) + `-c:a libmp3lame -b:a 32k` (lossy MP3). This caused:
+
+1. **Mono downmix destroyed SDI audio** - averaging a good channel with a noise channel produces garbage
+2. **Whisper hallucination** - garbage audio input caused random text in random languages
+3. **Not all lectures affected** - lectures with clean audio on both channels survived the downmix
+
+### Investigation
+
+- Audio downloaded with `-c:a copy` (no re-encoding) sounded fine
+- Re-encoded to 16kHz mono FLAC → garbage (confirmed mono downmix is the issue)
+- Re-encoded to 16kHz stereo FLAC → good audio (confirmed stereo preserves the good channel)
+- Groq/Whisper handles stereo input fine (it downmixes internally in a smarter way)
+
+### Resolution
+
+Changed `lib/lectures/audio-chunking.ts` chunk extraction from:
+```
+-ar 16000 -ac 1 -c:a libmp3lame -b:a 32k → .mp3
+```
+To:
+```
+-ar 16000 -c:a flac → .flac
+```
+
+- **Dropped `-ac 1`**: preserves stereo, avoids destructive mono downmix on SDI sources
+- **Switched to FLAC**: lossless compression as recommended by Groq docs (was lossy 32kbps MP3)
+- **Backwards compatible**: works for all lectures; stereo files are slightly larger but well within Groq limits
+
+### Reference
+
+Groq docs recommend FLAC for client-side preprocessing:
+```bash
+ffmpeg -i <input> -ar 16000 -ac 1 -map 0:a -c:a flac <output>.flac
+```
+We follow this except for `-ac 1` which is unsafe for SDI captures.
+
+---
+
 ## Risks & Mitigations
 
 | Risk | Mitigation |
@@ -1079,6 +1123,7 @@ If `ai.lecture_chunks_knowledge` has existing data:
 | Timestamp matching accuracy | Fuzzy matching with similarity threshold; manual review |
 | Large audio files | Stream to base64; consider chunked upload for very large files |
 | FFmpeg not available | Passthrough fallback; document requirement |
+| SDI audio mono downmix | Keep stereo in chunk preprocessing; use FLAC lossless (see above) |
 
 ---
 
