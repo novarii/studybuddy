@@ -22,7 +22,7 @@ type VideoSectionProps = {
  */
 function buildPanoptoEmbedUrl(sourceUrl: string, startSeconds: number): string {
   // Convert Viewer.aspx to Embed.aspx
-  let embedUrl = sourceUrl.replace('/Pages/Viewer.aspx', '/Pages/Embed.aspx');
+  const embedUrl = sourceUrl.replace('/Pages/Viewer.aspx', '/Pages/Embed.aspx');
 
   // Parse existing URL to modify parameters
   const url = new URL(embedUrl);

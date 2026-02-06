@@ -16,11 +16,34 @@ export const useChat = (
   }
 ) => {
   const { getToken } = useAuth();
-  const [inputValue, setInputValue] = useState("");
   const [streamingSources, setStreamingSources] = useState<RAGSource[]>([]);
   const [sourcesMap, setSourcesMap] = useState<Record<string, RAGSource[]>>({});
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [needsApiKey, setNeedsApiKey] = useState(false);
+
+  // Cache getToken in ref to prevent dependency array issues
+  // Clerk's getToken reference may change on every render, causing unnecessary re-runs
+  const getTokenRef = useRef(getToken);
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
+
+  // Token cache to prevent repeated Clerk calls
+  const tokenCacheRef = useRef<{ token: string | null; expires: number }>({
+    token: null,
+    expires: 0
+  });
+
+  const getCachedToken = useCallback(async () => {
+    const now = Date.now();
+    if (tokenCacheRef.current.token && now < tokenCacheRef.current.expires) {
+      return tokenCacheRef.current.token;
+    }
+    const token = await getTokenRef.current();
+    tokenCacheRef.current = { token, expires: now + 55000 }; // Cache for 55 seconds
+    return token;
+  }, []);
 
   // Ref to track the current sessionId for sendMessage
   const sessionIdRef = useRef(sessionId);
@@ -52,7 +75,7 @@ export const useChat = (
     const loadMessages = async () => {
       setIsLoadingHistory(true);
       try {
-        const token = await getToken();
+        const token = await getCachedToken();
         if (!token) return;
 
         const messages = await api.sessions.getMessages(token, sessionId);
@@ -84,7 +107,7 @@ export const useChat = (
     };
 
     loadMessages();
-  }, [sessionId, getToken]);
+  }, [sessionId, getCachedToken]);
 
   // Memoize transport - uses ref for sessionId to always get current value
   const transport = useMemo(() => new DefaultChatTransport({
@@ -112,6 +135,9 @@ export const useChat = (
     id: sessionId || courseId, // Use sessionId as conversation ID
     messages: initialMessages,
     transport,
+    // Throttle UI updates to prevent render on every token (default behavior)
+    // This significantly reduces CPU usage during streaming
+    experimental_throttle: 50,
     onData: (dataPart) => {
       // Capture RAG sources from data-rag-source stream events
       // Backend sends: { type: "data-rag-source", data: { source_id, source_type, ... } }
@@ -143,6 +169,11 @@ export const useChat = (
     },
     onError: (err) => {
       console.error("Chat error:", err);
+      // Check for NO_API_KEY error from the backend
+      // The error message contains the JSON response for fetch errors
+      if (err.message?.includes("NO_API_KEY") || err.message?.includes("API key required")) {
+        setNeedsApiKey(true);
+      }
     },
   });
 
@@ -152,42 +183,50 @@ export const useChat = (
     setMessages(initialMessages);
   }, [initialMessages, setMessages]);
 
-  // Convert AI SDK messages to our format
-  const messages: ChatMessage[] = aiMessages.map((msg, index) => {
-    // Extract text content from parts
-    const textContent = msg.parts
-      .filter((part): part is { type: "text"; text: string } => part.type === "text")
-      .map((part) => part.text)
-      .join("");
+  // Convert AI SDK messages to our format - memoized to prevent unnecessary re-renders
+  const messages: ChatMessage[] = useMemo(() => {
+    const start = performance.now();
+    const result = aiMessages.map((msg, index) => {
+      // Extract text content from parts
+      const textContent = msg.parts
+        .filter((part): part is { type: "text"; text: string } => part.type === "text")
+        .map((part) => part.text)
+        .join("");
 
-    const isLastAssistantMessage = msg.role === "assistant" && index === aiMessages.length - 1;
-    const isCurrentlyStreaming = status === "streaming" && isLastAssistantMessage;
+      const isLastAssistantMessage = msg.role === "assistant" && index === aiMessages.length - 1;
+      const isCurrentlyStreaming = status === "streaming" && isLastAssistantMessage;
 
-    // Get sources: use streaming sources for active stream, otherwise use sourcesMap
-    let messageSources: RAGSource[] | undefined;
-    if (msg.role === "assistant") {
-      if (isCurrentlyStreaming) {
-        messageSources = streamingSources.length > 0 ? streamingSources : undefined;
-      } else {
-        messageSources = sourcesMap[msg.id];
+      // Get sources: use streaming sources for active stream, otherwise use sourcesMap
+      let messageSources: RAGSource[] | undefined;
+      if (msg.role === "assistant") {
+        if (isCurrentlyStreaming) {
+          messageSources = streamingSources.length > 0 ? streamingSources : undefined;
+        } else {
+          messageSources = sourcesMap[msg.id];
+        }
       }
-    }
 
-    return {
-      id: msg.id,
-      role: msg.role as "user" | "assistant",
-      content: textContent,
-      timestamp: new Date(), // UIMessage doesn't have createdAt in v5
-      isStreaming: isCurrentlyStreaming,
-      sources: messageSources,
-    };
-  });
+      return {
+        id: msg.id,
+        role: msg.role as "user" | "assistant",
+        content: textContent,
+        timestamp: new Date(), // UIMessage doesn't have createdAt in v5
+        isStreaming: isCurrentlyStreaming,
+        sources: messageSources,
+      };
+    });
+    const duration = performance.now() - start;
+    if (duration > 10) {
+      console.warn(`[SLOW] messages mapping: ${duration.toFixed(1)}ms for ${aiMessages.length} messages`);
+    }
+    return result;
+  }, [aiMessages, status, streamingSources, sourcesMap]);
 
   const isLoading = status === "streaming" || status === "submitted";
 
-  // sendMessage accepts optional sessionId override for race condition handling
-  const sendMessage = useCallback(async (overrideSessionId?: string) => {
-    const message = inputValue.trim();
+  // sendMessage accepts message text and optional sessionId override
+  const sendMessage = useCallback(async (messageText: string, overrideSessionId?: string) => {
+    const message = messageText.trim();
     if (!message || !courseId || isLoading) return;
 
     // Use override if provided (for newly created sessions)
@@ -196,10 +235,9 @@ export const useChat = (
       sessionIdRef.current = overrideSessionId;
     }
 
-    // Get fresh token for each request (best practice per AI SDK docs)
-    const token = await getToken();
+    // Get cached token (fresh tokens cause performance issues)
+    const token = await getCachedToken();
 
-    setInputValue("");
     setStreamingSources([]);
 
     await aiSendMessage(
@@ -215,7 +253,7 @@ export const useChat = (
     if (effectiveSessionId) {
       onSessionCreatedRef.current?.(effectiveSessionId);
     }
-  }, [inputValue, courseId, isLoading, aiSendMessage, getToken]);
+  }, [courseId, isLoading, aiSendMessage, getCachedToken]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -230,17 +268,22 @@ export const useChat = (
     // This is now handled by changing the id prop
   }, []);
 
+  // Reset needsApiKey flag (called after user connects their key)
+  const clearApiKeyError = useCallback(() => {
+    setNeedsApiKey(false);
+  }, []);
+
   return {
     messages,
     isLoading,
     isLoadingHistory,
-    inputValue,
-    setInputValue,
     sendMessage,
     clearMessages,
     deleteCourseHistory,
     stop,
     sources: streamingSources,
     error,
+    needsApiKey,
+    clearApiKeyError,
   };
 };

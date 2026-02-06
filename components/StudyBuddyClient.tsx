@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { SunIcon, MoonIcon, LoaderIcon } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar/Sidebar";
 import { MainContent } from "@/components/MainContent/MainContent";
 import { RightPanel } from "@/components/RightPanel/RightPanel";
 import { CourseSelectDialog } from "@/components/Dialogs/CourseSelectDialog";
 import { MaterialsDialog } from "@/components/Dialogs/MaterialsDialog";
+import { ConnectApiKeyDialog } from "@/components/Dialogs/ConnectApiKeyDialog";
 import { EmptyState } from "@/components/EmptyState/EmptyState";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +31,8 @@ const formatTime = (seconds: number): string => {
 
 export const StudyBuddyClient = () => {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSlidesCollapsed, setIsSlidesCollapsed] = useState(false);
@@ -71,11 +75,11 @@ export const StudyBuddyClient = () => {
     messages,
     isLoading: isChatLoading,
     isLoadingHistory,
-    inputValue,
-    setInputValue,
     sendMessage,
     deleteCourseHistory,
     error: chatError,
+    needsApiKey,
+    clearApiKeyError,
   } = useChat(currentCourseId, currentSessionId ?? undefined, {
     isNewSession,
     onSessionCreated: markSessionCreated,
@@ -98,7 +102,6 @@ export const StudyBuddyClient = () => {
   const { lectures } = useLectures(currentCourseId);
 
   const { panelWidth: rightPanelWidth, isResizing: isRightPanelResizing, handleMouseDown: handleRightPanelMouseDown } = useResizePanel(400, 800, 400, "right");
-  const { panelWidth: sidebarWidth, isResizing: isSidebarResizing, handleMouseDown: handleSidebarMouseDown } = useResizePanel(200, 400, 280, "left");
 
   // Refetch documents when uploads complete
   useEffect(() => {
@@ -108,16 +111,38 @@ export const StudyBuddyClient = () => {
     }
   }, [uploads, refetchDocuments]);
 
-  // Show toast on chat error
+  // Show toast on chat error (except for API key errors which show a dialog)
   useEffect(() => {
-    if (chatError) {
+    if (chatError && !needsApiKey) {
       toast({
         title: "Chat error",
         description: chatError.message || "Failed to send message. Please try again.",
         variant: "destructive",
       });
     }
-  }, [chatError, toast]);
+  }, [chatError, needsApiKey, toast]);
+
+  // Handle OAuth callback URL params
+  useEffect(() => {
+    const apiKeyConnected = searchParams.get("api_key_connected");
+    const error = searchParams.get("error");
+
+    if (apiKeyConnected === "true") {
+      toast({
+        title: "API key connected",
+        description: "Your OpenRouter API key has been connected successfully.",
+      });
+      // Clear URL params
+      router.replace("/");
+    } else if (error?.startsWith("oauth_")) {
+      toast({
+        title: "Connection failed",
+        description: "Failed to connect OpenRouter API key. Please try again.",
+        variant: "destructive",
+      });
+      router.replace("/");
+    }
+  }, [searchParams, router, toast]);
 
   // Auto-select first session when sessions load (conditional setState during render)
   if (!currentSessionId && sessions.length > 0) {
@@ -210,7 +235,7 @@ export const StudyBuddyClient = () => {
   };
 
   // Modified sendMessage to create session if none exists
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async (message: string) => {
     let sessionId = currentSessionId;
 
     // If no session, create one first
@@ -220,9 +245,9 @@ export const StudyBuddyClient = () => {
       setCurrentSessionId(sessionId);
     }
 
-    // Pass sessionId directly to sendMessage (handles race condition)
-    sendMessage(sessionId);
-  };
+    // Pass sessionId and message directly to sendMessage
+    sendMessage(message, sessionId);
+  }, [currentSessionId, createSession, sendMessage]);
 
   const handleCitationClick = useCallback((source: RAGSource) => {
     if (source.source_type === "slide" && source.document_id && source.slide_number) {
@@ -293,9 +318,6 @@ export const StudyBuddyClient = () => {
             onSelectSession={handleSelectSession}
             onNewChat={handleNewChat}
             onDeleteSession={handleDeleteSession}
-            sidebarWidth={sidebarWidth}
-            isResizing={isSidebarResizing}
-            onResizeMouseDown={handleSidebarMouseDown}
           />
 
           <MainContent
@@ -303,7 +325,6 @@ export const StudyBuddyClient = () => {
             isDragging={isDragging}
             uploads={uploads}
             messages={messages}
-            inputValue={inputValue}
             isLoading={isChatLoading}
             isLoadingHistory={isLoadingHistory}
             onDragEnter={handleDragEnter}
@@ -314,7 +335,6 @@ export const StudyBuddyClient = () => {
             onRemoveUpload={removeUpload}
             onClearCompleted={clearCompleted}
             onOpenMaterials={() => setIsMaterialsDialogOpen(true)}
-            onInputChange={setInputValue}
             onSendMessage={handleSendMessage}
             onCitationClick={handleCitationClick}
           />
@@ -377,6 +397,12 @@ export const StudyBuddyClient = () => {
           onDeleteDocument={handleDeleteDocument}
         />
       )}
+
+      <ConnectApiKeyDialog
+        isOpen={needsApiKey}
+        colors={colors}
+        onClose={clearApiKeyError}
+      />
 
       <Toaster />
     </div>

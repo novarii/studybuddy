@@ -38,9 +38,8 @@ describe('GET /api/openrouter/status', () => {
       mockAuth.mockResolvedValue({ userId: null });
 
       const { GET } = await import('@/app/api/openrouter/status/route');
-      const request = new Request('http://localhost/api/openrouter/status');
 
-      const response = await GET(request);
+      const response = await GET();
 
       expect(response.status).toBe(401);
       const data = await response.json();
@@ -53,9 +52,8 @@ describe('GET /api/openrouter/status', () => {
       mockFindFirst.mockResolvedValue(null);
 
       const { GET } = await import('@/app/api/openrouter/status/route');
-      const request = new Request('http://localhost/api/openrouter/status');
 
-      const response = await GET(request);
+      const response = await GET();
 
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -78,9 +76,8 @@ describe('GET /api/openrouter/status', () => {
       });
 
       const { GET } = await import('@/app/api/openrouter/status/route');
-      const request = new Request('http://localhost/api/openrouter/status');
 
-      const response = await GET(request);
+      const response = await GET();
 
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -108,9 +105,8 @@ describe('GET /api/openrouter/status', () => {
       });
 
       const { GET } = await import('@/app/api/openrouter/status/route');
-      const request = new Request('http://localhost/api/openrouter/status');
 
-      const response = await GET(request);
+      const response = await GET();
 
       const data = await response.json();
       expect(data.connectedAt).toBe(connectedAt.toISOString());
@@ -130,9 +126,8 @@ describe('GET /api/openrouter/status', () => {
       });
 
       const { GET } = await import('@/app/api/openrouter/status/route');
-      const request = new Request('http://localhost/api/openrouter/status');
 
-      const response = await GET(request);
+      const response = await GET();
 
       const data = await response.json();
       expect(data.connected).toBe(true);
@@ -157,9 +152,8 @@ describe('GET /api/openrouter/status', () => {
       });
 
       const { GET } = await import('@/app/api/openrouter/status/route');
-      const request = new Request('http://localhost/api/openrouter/status');
 
-      const response = await GET(request);
+      const response = await GET();
 
       const data = await response.json();
       expect(data.openrouterKeyEncrypted).toBeUndefined();

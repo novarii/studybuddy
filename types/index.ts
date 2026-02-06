@@ -45,6 +45,7 @@ export type Document = {
   id: string;
   filename: string;
   status: "processing" | "completed" | "failed";
+  size_bytes?: number;
   page_count: number | null;
   unique_page_count: number | null;
   created_at: string;

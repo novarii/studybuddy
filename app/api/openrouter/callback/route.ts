@@ -1,8 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
-import { cookies } from 'next/headers';
 
 import { db, userApiKeys } from '@/lib/db';
 import { encryptApiKey } from '@/lib/crypto/encryption';
+import { retrieveVerifier } from '@/lib/auth/pkce-store';
 
 interface OpenRouterKeyResponse {
   key: string;
@@ -25,20 +25,19 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-  const settingsUrl = new URL('/settings', appUrl || req.url);
+  const redirectUrl = new URL('/', appUrl || req.url);
 
   if (!code) {
-    settingsUrl.searchParams.set('error', 'no_code');
-    return Response.redirect(settingsUrl.toString());
+    redirectUrl.searchParams.set('error', 'oauth_no_code');
+    return Response.redirect(redirectUrl.toString());
   }
 
-  // Retrieve code_verifier from cookie
-  const cookieStore = await cookies();
-  const codeVerifier = cookieStore.get('openrouter_verifier')?.value;
+  // Retrieve code_verifier from memory store (keyed by userId)
+  const codeVerifier = retrieveVerifier(userId);
 
   if (!codeVerifier) {
-    settingsUrl.searchParams.set('error', 'missing_verifier');
-    return Response.redirect(settingsUrl.toString());
+    redirectUrl.searchParams.set('error', 'oauth_expired');
+    return Response.redirect(redirectUrl.toString());
   }
 
   // Exchange code for API key
@@ -62,8 +61,8 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error('OpenRouter token exchange network error:', error);
-    settingsUrl.searchParams.set('error', 'exchange_failed');
-    return Response.redirect(settingsUrl.toString());
+    redirectUrl.searchParams.set('error', 'oauth_exchange_failed');
+    return Response.redirect(redirectUrl.toString());
   }
 
   if (!tokenResponse.ok) {
@@ -75,8 +74,8 @@ export async function GET(req: Request) {
       codeLength: code.length,
       verifierLength: codeVerifier.length,
     });
-    settingsUrl.searchParams.set('error', 'exchange_failed');
-    return Response.redirect(settingsUrl.toString());
+    redirectUrl.searchParams.set('error', 'oauth_exchange_failed');
+    return Response.redirect(redirectUrl.toString());
   }
 
   const { key } = (await tokenResponse.json()) as OpenRouterKeyResponse;
@@ -129,15 +128,8 @@ export async function GET(req: Request) {
       },
     });
 
-  // Clear the verifier cookie and redirect to success
-  settingsUrl.searchParams.set('connected', 'true');
+  // Redirect to home with success flag
+  redirectUrl.searchParams.set('api_key_connected', 'true');
 
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: settingsUrl.toString(),
-      'Set-Cookie':
-        'openrouter_verifier=; HttpOnly; Secure; Max-Age=0; Path=/',
-    },
-  });
+  return Response.redirect(redirectUrl.toString());
 }

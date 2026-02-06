@@ -37,11 +37,8 @@ describe('DELETE /api/openrouter/disconnect', () => {
       mockAuth.mockResolvedValue({ userId: null });
 
       const { DELETE } = await import('@/app/api/openrouter/disconnect/route');
-      const request = new Request('http://localhost/api/openrouter/disconnect', {
-        method: 'DELETE',
-      });
 
-      const response = await DELETE(request);
+      const response = await DELETE();
 
       expect(response.status).toBe(401);
       const data = await response.json();
@@ -52,22 +49,16 @@ describe('DELETE /api/openrouter/disconnect', () => {
   describe('key deletion', () => {
     it('deletes user API key from database', async () => {
       const { DELETE } = await import('@/app/api/openrouter/disconnect/route');
-      const request = new Request('http://localhost/api/openrouter/disconnect', {
-        method: 'DELETE',
-      });
 
-      await DELETE(request);
+      await DELETE();
 
       expect(mockDbDelete).toHaveBeenCalled();
     });
 
     it('returns success: true on successful deletion', async () => {
       const { DELETE } = await import('@/app/api/openrouter/disconnect/route');
-      const request = new Request('http://localhost/api/openrouter/disconnect', {
-        method: 'DELETE',
-      });
 
-      const response = await DELETE(request);
+      const response = await DELETE();
 
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -81,11 +72,8 @@ describe('DELETE /api/openrouter/disconnect', () => {
       });
 
       const { DELETE } = await import('@/app/api/openrouter/disconnect/route');
-      const request = new Request('http://localhost/api/openrouter/disconnect', {
-        method: 'DELETE',
-      });
 
-      const response = await DELETE(request);
+      const response = await DELETE();
 
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -100,11 +88,8 @@ describe('DELETE /api/openrouter/disconnect', () => {
       });
 
       const { DELETE } = await import('@/app/api/openrouter/disconnect/route');
-      const request = new Request('http://localhost/api/openrouter/disconnect', {
-        method: 'DELETE',
-      });
 
-      const response = await DELETE(request);
+      const response = await DELETE();
 
       expect(response.status).toBe(500);
       const data = await response.json();

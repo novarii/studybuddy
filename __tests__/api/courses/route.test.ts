@@ -67,9 +67,9 @@ describe('GET /api/courses', () => {
       mockAuth.mockResolvedValue({ userId: null });
 
       const { GET } = await import('@/app/api/courses/route');
-      const request = new Request('http://localhost/api/courses');
+      
 
-      const response = await GET(request);
+      const response = await GET();
 
       expect(response.status).toBe(401);
       const data = await response.json();
@@ -80,9 +80,9 @@ describe('GET /api/courses', () => {
   describe('course listing', () => {
     it('returns list of courses for authenticated user', async () => {
       const { GET } = await import('@/app/api/courses/route');
-      const request = new Request('http://localhost/api/courses');
+      
 
-      const response = await GET(request);
+      const response = await GET();
 
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -107,9 +107,9 @@ describe('GET /api/courses', () => {
       mockSelectFromOrderBy.mockResolvedValue([]);
 
       const { GET } = await import('@/app/api/courses/route');
-      const request = new Request('http://localhost/api/courses');
+      
 
-      const response = await GET(request);
+      const response = await GET();
 
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -130,9 +130,9 @@ describe('GET /api/courses', () => {
       ]);
 
       const { GET } = await import('@/app/api/courses/route');
-      const request = new Request('http://localhost/api/courses');
+      
 
-      const response = await GET(request);
+      const response = await GET();
 
       expect(response.status).toBe(200);
       const data = await response.json();

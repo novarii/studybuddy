@@ -93,7 +93,8 @@ describe('POST /api/lectures/stream', () => {
 
     it('returns 400 when streamUrl is missing', async () => {
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const { streamUrl: _, ...bodyWithoutStreamUrl } = validRequestBody;
+      const { streamUrl: _streamUrl, ...bodyWithoutStreamUrl } = validRequestBody;
+      void _streamUrl; // Intentionally unused
       const request = createRequest(bodyWithoutStreamUrl);
 
       const response = await POST(request);
@@ -105,7 +106,8 @@ describe('POST /api/lectures/stream', () => {
 
     it('returns 400 when sessionId is missing', async () => {
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const { sessionId: _, ...bodyWithoutSessionId } = validRequestBody;
+      const { sessionId: _sessionId, ...bodyWithoutSessionId } = validRequestBody;
+      void _sessionId; // Intentionally unused
       const request = createRequest(bodyWithoutSessionId);
 
       const response = await POST(request);
@@ -117,7 +119,8 @@ describe('POST /api/lectures/stream', () => {
 
     it('returns 400 when courseId is missing', async () => {
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const { courseId: _, ...bodyWithoutCourseId } = validRequestBody;
+      const { courseId: _courseId, ...bodyWithoutCourseId } = validRequestBody;
+      void _courseId; // Intentionally unused
       const request = createRequest(bodyWithoutCourseId);
 
       const response = await POST(request);
@@ -129,7 +132,8 @@ describe('POST /api/lectures/stream', () => {
 
     it('returns 400 when title is missing', async () => {
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const { title: _, ...bodyWithoutTitle } = validRequestBody;
+      const { title: _title, ...bodyWithoutTitle } = validRequestBody;
+      void _title; // Intentionally unused
       const request = createRequest(bodyWithoutTitle);
 
       const response = await POST(request);
@@ -141,7 +145,8 @@ describe('POST /api/lectures/stream', () => {
 
     it('returns 400 when sourceUrl is missing', async () => {
       const { POST } = await import('@/app/api/lectures/stream/route');
-      const { sourceUrl: _, ...bodyWithoutSourceUrl } = validRequestBody;
+      const { sourceUrl: _sourceUrl, ...bodyWithoutSourceUrl } = validRequestBody;
+      void _sourceUrl; // Intentionally unused
       const request = createRequest(bodyWithoutSourceUrl);
 
       const response = await POST(request);

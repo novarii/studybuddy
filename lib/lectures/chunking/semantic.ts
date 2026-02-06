@@ -106,7 +106,6 @@ export async function detectTopicBoundaries(
     schema: SemanticChunksSchema,
     system: CHUNKING_SYSTEM_PROMPT,
     prompt: transcriptText,
-    maxTokens: 16000, // Prevent truncation for long lectures
   });
 
   return result.object.chunks;

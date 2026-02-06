@@ -58,8 +58,8 @@ export const MaterialsDialog: React.FC<MaterialsDialogProps> = ({
                           {doc.filename}
                         </span>
                         <span className="text-xs" style={{ color: colors.secondaryText }}>
-                          {formatFileSize(doc.size_bytes)}
-                          {doc.page_count && ` - ${doc.page_count} pages`}
+                          {doc.size_bytes && formatFileSize(doc.size_bytes)}
+                          {doc.page_count && `${doc.size_bytes ? ' - ' : ''}${doc.page_count} pages`}
                         </span>
                       </div>
                       <button
