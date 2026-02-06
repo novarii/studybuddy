@@ -33,11 +33,14 @@ test.describe('Lecture Stream Upload API', () => {
     });
 
     test('should reject invalid JSON body', async ({ request }) => {
-      const response = await request.post('/api/lectures/stream', {
-        body: 'not valid json',
+      // Send invalid JSON using data option (Playwright will serialize it)
+      // To send raw invalid JSON, we need to use a workaround
+      const response = await request.fetch('/api/lectures/stream', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        data: 'not valid json',
       });
 
       expect(response.status()).toBeLessThan(500);
