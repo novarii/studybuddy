@@ -103,13 +103,12 @@ export async function POST(req: Request) {
     apiKey,
   });
 
-  // Convert messages once, outside the stream
   const modelMessages = await convertToModelMessages(messages);
 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       const result = streamText({
-        model: openrouter.chat('x-ai/grok-4.1-fast'),
+        model: openrouter.chat('deepseek/deepseek-v3.2'),
         system: SYSTEM_PROMPT,
         messages: modelMessages,
         tools: {
