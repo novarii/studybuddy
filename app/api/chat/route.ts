@@ -227,7 +227,7 @@ export async function POST(req: Request) {
             },
           }),
         },
-        stopWhen: stepCountIs(3),
+        stopWhen: stepCountIs(10),
         onFinish: async ({ response, usage, providerMetadata }) => {
           // Extract text content from all assistant messages
           const assistantContent = response.messages
