@@ -1,5 +1,6 @@
 "use client";
 
+import "@/lib/polyfills";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { Loader2Icon } from "lucide-react";
