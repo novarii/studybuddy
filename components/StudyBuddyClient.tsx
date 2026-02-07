@@ -49,6 +49,11 @@ export const StudyBuddyClient = () => {
 
   const colors = isDarkMode ? darkModeColors : lightModeColors;
 
+  // Sync .dark class on <html> so Tailwind dark: variants and CSS variables work
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDarkMode);
+  }, [isDarkMode]);
+
   // Use the courses hook for API integration
   const {
     userCourses,
