@@ -5,14 +5,11 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { Loader2Icon } from "lucide-react";
 import type { ColorScheme } from "@/types";
 
-// Skip worker on older browsers — worker runs in separate context where
-// polyfills don't apply. PDF.js falls back to main-thread parsing.
-if (typeof Promise.withResolvers === "function") {
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url
-  ).toString();
-}
+// Use legacy build — targets ES5, works on iOS 16 Safari without polyfills
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/legacy/build/pdf.worker.min.js",
+  import.meta.url
+).toString();
 
 /** How many pages above/below the viewport to keep rendered */
 const PAGE_BUFFER = 2;
