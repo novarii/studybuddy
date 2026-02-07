@@ -44,6 +44,7 @@ A **spec** is an atomic source of truth document. It can contain:
 | [streaming-performance.md](./streaming-performance.md) | Streaming performance | Input isolation, token caching, Shiki optimization |
 | [citation-debugging.md](./citation-debugging.md) | Citation debugging guide | Source flow, failure points, debugging steps |
 | [resilient-chat-requests.md](./resilient-chat-requests.md) | Resilient chat requests | Background jobs, pending messages, disconnect handling |
+| [audio-channel-detection.md](./audio-channel-detection.md) | Audio channel detection for lectures | SDI stereo probe, channel selection, Whisper hallucination fix |
 
 ---
 
