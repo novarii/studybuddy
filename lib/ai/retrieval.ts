@@ -60,7 +60,7 @@ function orderChunks(results: RetrievalResult[]): RetrievalResult[] {
  * 1. A numbered context string for the LLM
  * 2. Rich source metadata for the frontend
  */
-export function formatRetrievalContext(results: RetrievalResult[]): SearchResult {
+export function formatRetrievalContext(results: RetrievalResult[], startIndex = 0): SearchResult {
   if (results.length === 0) {
     return { context: '', sources: [] };
   }
@@ -70,7 +70,7 @@ export function formatRetrievalContext(results: RetrievalResult[]): SearchResult
   const contextParts: string[] = [];
 
   ordered.forEach((result, index) => {
-    const chunkNumber = index + 1;
+    const chunkNumber = startIndex + index + 1;
 
     if (result.type === 'slide') {
       const sourceHint = `Slide ${result.slideNumber}`;
@@ -241,8 +241,8 @@ async function searchLectures(options: LectureSearchOptions): Promise<LectureSea
  * @param options - Search options including query and context filters
  * @returns Context string and source metadata for RAG
  */
-export async function searchKnowledge(options: SearchOptions): Promise<SearchResult> {
-  const { query, userId, courseId, documentId, lectureId, apiKey } = options;
+export async function searchKnowledge(options: SearchOptions & { startIndex?: number }): Promise<SearchResult> {
+  const { query, userId, courseId, documentId, lectureId, apiKey, startIndex = 0 } = options;
 
   // Get embedding for the query (uses BYOK key if provided)
   const queryEmbedding = await embed(query, apiKey);
@@ -270,6 +270,6 @@ export async function searchKnowledge(options: SearchOptions): Promise<SearchRes
     ...lectureResults.map((r) => ({ type: 'lecture' as const, ...r })),
   ];
 
-  // Format into context and sources
-  return formatRetrievalContext(allResults);
+  // Format into context and sources, offset by startIndex for multi-call continuity
+  return formatRetrievalContext(allResults, startIndex);
 }

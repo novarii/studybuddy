@@ -212,6 +212,7 @@ export async function POST(req: Request) {
                 documentId,
                 lectureId,
                 apiKey,
+                startIndex: collectedSources.length,
               });
               collectedSources.push(...sources);
 
