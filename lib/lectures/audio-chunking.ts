@@ -18,9 +18,10 @@ import { TranscriptionResult, TranscriptionError, WhisperSegment } from './types
 
 /**
  * Default chunk configuration.
- * 3 minute chunks to keep FLAC files under 10MB (~51KB/s at 16kHz stereo).
+ * 10 minute chunks — mono FLAC at 16kHz is ~15MB per 10 min, fits within Groq 25MB limit.
+ * Channel detection extracts a single channel before chunking, so chunks are always mono.
  */
-const DEFAULT_CHUNK_LENGTH_SECONDS = 180; // 3 minutes
+const DEFAULT_CHUNK_LENGTH_SECONDS = 600; // 10 minutes
 const DEFAULT_OVERLAP_SECONDS = 10;
 
 /**
@@ -61,6 +62,172 @@ interface ChunkTranscriptionResult {
   startMs: number;
   /** Chunk index */
   index: number;
+}
+
+/**
+ * Get the number of audio channels using ffprobe.
+ */
+async function getChannelCount(audioPath: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const ffprobe = spawn('ffprobe', [
+      '-v', 'error',
+      '-show_entries', 'stream=channels',
+      '-of', 'default=noprint_wrappers=1:nokey=1',
+      audioPath,
+    ]);
+
+    let output = '';
+    let stderr = '';
+
+    ffprobe.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    ffprobe.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    ffprobe.on('close', (code) => {
+      if (code === 0) {
+        const channels = parseInt(output.trim(), 10);
+        if (isNaN(channels)) {
+          reject(new Error('Failed to parse channel count'));
+        } else {
+          resolve(channels);
+        }
+      } else {
+        reject(new Error(`ffprobe failed: ${stderr}`));
+      }
+    });
+
+    ffprobe.on('error', (err) => {
+      reject(new Error(`ffprobe not found: ${err.message}`));
+    });
+  });
+}
+
+/**
+ * Probe a single audio channel by extracting a 30s snippet and transcribing it.
+ * Returns the average avg_logprob across all segments (higher = better).
+ */
+async function probeChannel(
+  groq: Groq,
+  audioPath: string,
+  channel: 0 | 1,
+  startSeconds: number = 30
+): Promise<number> {
+  const tmpPath = join(dirname(audioPath), `probe_ch${channel}.flac`);
+
+  try {
+    // Extract 30s snippet of specific channel as mono FLAC
+    await new Promise<void>((resolve, reject) => {
+      const ffmpeg = spawn('ffmpeg', [
+        '-y',
+        '-ss', startSeconds.toString(),
+        '-i', audioPath,
+        '-t', '30',
+        '-af', `pan=mono|c0=c${channel}`,
+        '-ar', '16000',
+        '-c:a', 'flac',
+        tmpPath,
+      ]);
+
+      let stderr = '';
+      ffmpeg.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      ffmpeg.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`FFmpeg probe extraction failed: ${stderr.slice(-500)}`));
+        }
+      });
+
+      ffmpeg.on('error', (err) => {
+        reject(new Error(`FFmpeg not found: ${err.message}`));
+      });
+    });
+
+    // Check snippet is large enough (at least ~5s of audio)
+    const stats = await stat(tmpPath);
+    if (stats.size < 10000) {
+      console.log(`[AudioChunking] Probe ch${channel} snippet too small (${stats.size}B), skipping`);
+      return -Infinity;
+    }
+
+    // Transcribe with Groq
+    const transcription = await groq.audio.transcriptions.create({
+      file: createReadStream(tmpPath),
+      model: GROQ_MODEL,
+      response_format: 'verbose_json',
+      language: 'en',
+      temperature: 0,
+    });
+
+    const response = transcription as unknown as {
+      segments?: Array<{ avg_logprob?: number }>;
+    };
+
+    const segments = response.segments || [];
+    if (segments.length === 0) return -Infinity;
+
+    // Average avg_logprob across segments
+    const logprobs = segments
+      .map((s) => s.avg_logprob)
+      .filter((v): v is number => v !== undefined);
+
+    if (logprobs.length === 0) return -Infinity;
+
+    return logprobs.reduce((sum, v) => sum + v, 0) / logprobs.length;
+  } finally {
+    try {
+      await unlink(tmpPath);
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+}
+
+/**
+ * Detect the best audio channel for transcription.
+ * For mono files, returns null (no channel selection needed).
+ * For stereo files, probes both channels and returns the one with better avg_logprob.
+ */
+async function selectBestChannel(
+  groq: Groq,
+  audioPath: string
+): Promise<number | null> {
+  const channels = await getChannelCount(audioPath);
+
+  if (channels <= 1) {
+    console.log('[AudioChunking] Mono input, skipping channel detection');
+    return null;
+  }
+
+  console.log(`[AudioChunking] Detected ${channels} channels, probing...`);
+
+  let leftScore: number;
+  let rightScore: number;
+
+  try {
+    [leftScore, rightScore] = await Promise.all([
+      probeChannel(groq, audioPath, 0),
+      probeChannel(groq, audioPath, 1),
+    ]);
+  } catch (err) {
+    console.warn('[AudioChunking] Channel probe failed, defaulting to left channel:', err);
+    return 0;
+  }
+
+  const bestChannel = leftScore >= rightScore ? 0 : 1;
+
+  console.log(
+    `[AudioChunking] Selected channel ${bestChannel} (avg_logprob: ${leftScore.toFixed(2)} vs ${rightScore.toFixed(2)})`
+  );
+
+  return bestChannel;
 }
 
 /**
@@ -116,7 +283,8 @@ async function getAudioDuration(audioPath: string): Promise<number> {
 async function splitAudioIntoChunks(
   audioPath: string,
   chunkLengthSeconds: number = DEFAULT_CHUNK_LENGTH_SECONDS,
-  overlapSeconds: number = DEFAULT_OVERLAP_SECONDS
+  overlapSeconds: number = DEFAULT_OVERLAP_SECONDS,
+  channel: number | null = null
 ): Promise<ChunkInfo[]> {
   // Get audio duration
   const durationSeconds = await getAudioDuration(audioPath);
@@ -147,20 +315,22 @@ async function splitAudioIntoChunks(
 
     const chunkPath = join(chunksDir, `chunk_${i.toString().padStart(3, '0')}.flac`);
 
-    // Extract chunk using FFmpeg
-    // Keep stereo to avoid destroying SDI captures where one channel is noise.
-    // Use FLAC (lossless) as recommended by Groq docs.
-    // 3-min chunks keep FLAC files under 10MB.
+    // Extract chunk using FFmpeg.
+    // When a specific channel is selected, extract it as mono via pan filter.
+    // Use FLAC (lossless) at 16kHz as recommended by Groq docs.
+    const ffmpegArgs = [
+      '-y',
+      '-ss', startSeconds.toString(),
+      '-i', audioPath,
+      '-t', durationChunkSeconds.toString(),
+      ...(channel !== null ? ['-af', `pan=mono|c0=c${channel}`] : []),
+      '-ar', '16000',
+      '-c:a', 'flac',
+      chunkPath,
+    ];
+
     await new Promise<void>((resolve, reject) => {
-      const ffmpeg = spawn('ffmpeg', [
-        '-y',
-        '-ss', startSeconds.toString(),
-        '-i', audioPath,
-        '-t', durationChunkSeconds.toString(),
-        '-ar', '16000',
-        '-c:a', 'flac',
-        chunkPath,
-      ]);
+      const ffmpeg = spawn('ffmpeg', ffmpegArgs);
 
       let stderr = '';
       ffmpeg.stderr.on('data', (data) => {
@@ -509,8 +679,11 @@ export async function transcribeWithChunking(
   let chunks: ChunkInfo[] = [];
 
   try {
-    // Split into chunks
-    chunks = await splitAudioIntoChunks(audioPath, chunkLengthSeconds, overlapSeconds);
+    // Detect best channel for stereo files (probes both channels, picks best)
+    const bestChannel = await selectBestChannel(groq, audioPath);
+
+    // Split into chunks (with channel extraction if stereo)
+    chunks = await splitAudioIntoChunks(audioPath, chunkLengthSeconds, overlapSeconds, bestChannel);
 
     // Transcribe all chunks
     const results: ChunkTranscriptionResult[] = [];
