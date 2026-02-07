@@ -6,10 +6,16 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { Loader2Icon } from "lucide-react";
 import type { ColorScheme } from "@/types";
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
+// Modern browsers: use Web Worker for off-main-thread PDF parsing
+// Older Safari/iOS: skip worker — pdf.worker.min.mjs uses APIs like
+// Promise.withResolvers and URL.parse that can't be polyfilled inside
+// a Worker context. PDF.js falls back to main-thread parsing instead.
+if (typeof Promise.withResolvers === "function" && typeof URL.parse === "function") {
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+  ).toString();
+}
 
 /** How many pages above/below the viewport to keep rendered */
 const PAGE_BUFFER = 2;
