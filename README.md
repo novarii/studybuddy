@@ -1,4 +1,4 @@
-# StudyBuddy Frontend
+# StudyBuddy
 
 AI-powered study assistant that helps students learn from their lecture recordings and course slides. Ask questions, get answers with citations, and navigate directly to the relevant lecture moment or slide.
 
