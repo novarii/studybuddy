@@ -22,10 +22,13 @@ export default function PdfViewer({
   colors,
 }: PdfViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const [containerWidth, setContainerWidth] = useState<number | undefined>(
     undefined
   );
+  const [numPages, setNumPages] = useState<number>(0);
 
+  // Track container width via ResizeObserver
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -37,13 +40,38 @@ export default function PdfViewer({
     });
 
     observer.observe(el);
-    // Set initial width
     setContainerWidth(el.clientWidth);
 
     return () => observer.disconnect();
   }, []);
 
+  // Scroll to the target page when pageNumber changes
+  useEffect(() => {
+    const el = pageRefs.current.get(pageNumber);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [pageNumber]);
+
+  const setPageRef = useCallback(
+    (page: number) => (el: HTMLDivElement | null) => {
+      if (el) {
+        pageRefs.current.set(page, el);
+      } else {
+        pageRefs.current.delete(page);
+      }
+    },
+    []
+  );
+
   const pdfUrl = `/api/documents/${documentId}/file`;
+
+  const onDocumentLoadSuccess = useCallback(
+    ({ numPages: total }: { numPages: number }) => {
+      setNumPages(total);
+    },
+    []
+  );
 
   const loading = useCallback(
     () => (
@@ -74,14 +102,19 @@ export default function PdfViewer({
         file={pdfUrl}
         loading={loading}
         error={error}
+        onLoadSuccess={onDocumentLoadSuccess}
       >
-        <Page
-          pageNumber={pageNumber}
-          width={containerWidth}
-          loading={loading}
-          renderAnnotationLayer={false}
-          renderTextLayer={false}
-        />
+        {numPages > 0 &&
+          Array.from({ length: numPages }, (_, i) => (
+            <div key={i + 1} ref={setPageRef(i + 1)}>
+              <Page
+                pageNumber={i + 1}
+                width={containerWidth}
+                renderAnnotationLayer={false}
+                renderTextLayer={false}
+              />
+            </div>
+          ))}
       </Document>
     </div>
   );
