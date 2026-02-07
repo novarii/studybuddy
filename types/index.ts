@@ -60,7 +60,7 @@ export type Lecture = {
   stream_url: string;
   title: string | null;
   duration_seconds: number | null;
-  status: "pending" | "downloading" | "completed" | "failed";
+  status: "pending" | "downloading" | "transcribing" | "chunking" | "completed" | "failed";
   error_message: string | null;
   created_at: string;
   updated_at: string;

@@ -104,7 +104,7 @@ export const StudyBuddyClient = () => {
 
   const { documents, refetch: refetchDocuments, deleteDocument } = useDocuments(currentCourseId);
 
-  const { lectures } = useLectures(currentCourseId);
+  const { lectures, refetch: refetchLectures } = useLectures(currentCourseId);
 
   const { panelWidth: rightPanelWidth, isResizing: isRightPanelResizing, handleMouseDown: handleRightPanelMouseDown } = useResizePanel(400, 800, 400, "right");
 
@@ -351,7 +351,7 @@ export const StudyBuddyClient = () => {
             onFileSelect={handleFileSelect}
             onRemoveUpload={removeUpload}
             onClearCompleted={clearCompleted}
-            onOpenMaterials={() => setIsMaterialsDialogOpen(true)}
+            onOpenMaterials={() => { refetchDocuments(); refetchLectures(); setIsMaterialsDialogOpen(true); }}
             onSendMessage={handleSendMessage}
             onCitationClick={handleCitationClick}
           />
@@ -408,6 +408,7 @@ export const StudyBuddyClient = () => {
         <MaterialsDialog
           isOpen={isMaterialsDialogOpen}
           documents={documents}
+          lectures={lectures}
           currentCourse={currentCourse}
           colors={colors}
           onClose={() => setIsMaterialsDialogOpen(false)}
