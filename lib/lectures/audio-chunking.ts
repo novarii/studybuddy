@@ -18,7 +18,7 @@ import { TranscriptionResult, TranscriptionError, WhisperSegment } from './types
 
 /**
  * Default chunk configuration.
- * 10 minute chunks — mono FLAC at 16kHz is ~15MB per 10 min, fits within Groq 25MB limit.
+ * 10 minute chunks — mono OGG Vorbis at 16kHz is ~1-1.5MB per 10 min, well within Groq 25MB limit.
  * Channel detection extracts a single channel before chunking, so chunks are always mono.
  */
 const DEFAULT_CHUNK_LENGTH_SECONDS = 600; // 10 minutes
@@ -116,10 +116,10 @@ async function probeChannel(
   channel: 0 | 1,
   startSeconds: number = 30
 ): Promise<number> {
-  const tmpPath = join(dirname(audioPath), `probe_ch${channel}.flac`);
+  const tmpPath = join(dirname(audioPath), `probe_ch${channel}.ogg`);
 
   try {
-    // Extract 30s snippet of specific channel as mono FLAC
+    // Extract 30s snippet of specific channel as mono OGG Vorbis
     await new Promise<void>((resolve, reject) => {
       const ffmpeg = spawn('ffmpeg', [
         '-y',
@@ -128,7 +128,7 @@ async function probeChannel(
         '-t', '30',
         '-af', `pan=mono|c0=c${channel}`,
         '-ar', '16000',
-        '-c:a', 'flac',
+        '-c:a', 'libvorbis', '-q:a', '4',
         tmpPath,
       ]);
 
@@ -317,11 +317,11 @@ async function splitAudioIntoChunks(
     const startSeconds = startMs / 1000;
     const durationChunkSeconds = (endMs - startMs) / 1000;
 
-    const chunkPath = join(chunksDir, `chunk_${i.toString().padStart(3, '0')}.flac`);
+    const chunkPath = join(chunksDir, `chunk_${i.toString().padStart(3, '0')}.ogg`);
 
     // Extract chunk using FFmpeg.
     // When a specific channel is selected, extract it as mono via pan filter.
-    // Use FLAC (lossless) at 16kHz as recommended by Groq docs.
+    // Use OGG Vorbis at 16kHz — 10-15x smaller than FLAC with no quality loss for Whisper.
     const ffmpegArgs = [
       '-y',
       '-ss', startSeconds.toString(),
@@ -329,7 +329,7 @@ async function splitAudioIntoChunks(
       '-t', durationChunkSeconds.toString(),
       ...(channel !== null ? ['-af', `pan=mono|c0=c${channel}`] : []),
       '-ar', '16000',
-      '-c:a', 'flac',
+      '-c:a', 'libvorbis', '-q:a', '4',
       chunkPath,
     ];
 
