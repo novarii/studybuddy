@@ -41,8 +41,9 @@ const ALLOWED_DOMAIN_PATTERNS = [
   // Panopto domains (e.g., university.hosted.panopto.com)
   /\.panopto\.com$/i,
   /\.panopto\.eu$/i,
-  // Panopto CDN
+  // Panopto CDN (some instances serve HLS via CloudFront)
   /\.panopto-content\.com$/i,
+  /\.cloudfront\.net$/i,
   // Allow localhost/127.0.0.1 only in development
   ...(process.env.NODE_ENV === 'development'
     ? [/^localhost$/i, /^127\.0\.0\.1$/]

@@ -28,6 +28,11 @@ describe('validateStreamUrl', () => {
       const result = validateStreamUrl('https://uni.panopto.com/Panopto/Podcast/Stream/session-id/master.m3u8');
       expect(result.valid).toBe(true);
     });
+
+    it('accepts CloudFront CDN domains (Panopto HLS delivery)', () => {
+      const result = validateStreamUrl('https://d2y36twrtb17ty.cloudfront.net/sessions/731/index.m3u8');
+      expect(result.valid).toBe(true);
+    });
   });
 
   describe('invalid URLs', () => {
@@ -49,7 +54,7 @@ describe('validateStreamUrl', () => {
       expect(result.error).toContain('HTTPS');
     });
 
-    it('rejects non-Panopto domains', () => {
+    it('rejects bare cloudfront.net without subdomain', () => {
       const result = validateStreamUrl('https://cloudfront.net/stream.m3u8');
       expect(result.valid).toBe(false);
       expect(result.error).toContain('not in the allowed list');
