@@ -1097,20 +1097,19 @@ Changed `lib/lectures/audio-chunking.ts` chunk extraction from:
 ```
 To:
 ```
--ar 16000 -c:a flac → .flac
+-ar 16000 -c:a libmp3lame -b:a 64k → .mp3
 ```
 
 - **Dropped `-ac 1`**: preserves stereo, avoids destructive mono downmix on SDI sources
-- **Switched to FLAC**: lossless compression as recommended by Groq docs (was lossy 32kbps MP3)
-- **Backwards compatible**: works for all lectures; stereo files are slightly larger but well within Groq limits
+- **Kept MP3**: FLAC (lossless) chunks were ~31MB per 10min, exceeding Groq's 25MB upload limit
+- **Bumped bitrate to 64kbps**: stereo needs more headroom than mono; 64k keeps files ~4.7MB per chunk
+- **Backwards compatible**: works for all lectures; stereo MP3 at 64k is well within Groq limits
 
-### Reference
+### Note on FLAC
 
-Groq docs recommend FLAC for client-side preprocessing:
-```bash
-ffmpeg -i <input> -ar 16000 -ac 1 -map 0:a -c:a flac <output>.flac
-```
-We follow this except for `-ac 1` which is unsafe for SDI captures.
+Groq docs recommend FLAC for preprocessing, but FLAC is lossless and produces files too large
+for chunked uploads. FLAC is only practical for short files that don't need chunking (under 10MB).
+For chunked transcription, MP3 at 64kbps is a good balance of quality and size.
 
 ---
 
