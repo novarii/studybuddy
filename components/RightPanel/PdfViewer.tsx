@@ -1,14 +1,12 @@
 "use client";
 
-import "@/lib/polyfills";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { Loader2Icon } from "lucide-react";
 import type { ColorScheme } from "@/types";
 
-// Worker uses Promise.withResolvers/URL.parse which can't be polyfilled
-// inside a Worker context. Skip worker on older browsers so PDF.js runs
-// on the main thread where our polyfills are active.
+// Skip worker on older browsers — worker runs in separate context where
+// polyfills don't apply. PDF.js falls back to main-thread parsing.
 if (typeof Promise.withResolvers === "function") {
   pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/build/pdf.worker.min.mjs",
