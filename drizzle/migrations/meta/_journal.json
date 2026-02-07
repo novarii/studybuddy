@@ -64,6 +64,13 @@
       "when": 1770432870636,
       "tag": "0008_dapper_surge",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1770433316108,
+      "tag": "0009_tired_longshot",
+      "breakpoints": true
     }
   ]
 }

@@ -31,6 +31,9 @@ export const chatSessions = aiSchema.table(
       .notNull()
       .defaultNow(),
     lastPromptTokens: integer('last_prompt_tokens'),
+    summary: text('summary'),
+    compactedAt: timestamp('compacted_at', { withTimezone: true }),
+    compactedBeforeMessageId: uuid('compacted_before_message_id'),
   },
   (table) => [
     index('idx_chat_sessions_user_id').on(table.userId),

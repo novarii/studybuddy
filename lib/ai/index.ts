@@ -15,6 +15,11 @@ export {
   formatTimestamp,
 } from './retrieval';
 export { SYSTEM_PROMPT } from './prompts';
+export {
+  shouldCompact,
+  buildSummarySystemMessage,
+  compactMessages,
+} from './compaction';
 export type {
   SearchOptions,
   SearchResult,

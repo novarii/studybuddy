@@ -15,7 +15,13 @@ import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 
 import { db, chatSessions, chatMessages, courses } from '@/lib/db';
-import { searchKnowledge, SYSTEM_PROMPT } from '@/lib/ai';
+import {
+  searchKnowledge,
+  SYSTEM_PROMPT,
+  shouldCompact,
+  buildSummarySystemMessage,
+  compactMessages,
+} from '@/lib/ai';
 import { getUserApiKey } from '@/lib/api-keys';
 import { saveSourcesWithDedup } from '@/lib/sources/deduplicated-sources';
 import type { RAGSource } from '@/types';
@@ -114,8 +120,70 @@ export async function POST(req: Request) {
     apiKey,
   });
 
+  // --- Context compaction ---
+  // If session already has a summary from prior compaction, prepend it to system prompt
+  let effectiveSystemPrompt = systemPrompt;
+  let compactedBeforeMessageId = session.compactedBeforeMessageId;
+
+  if (session.summary && compactedBeforeMessageId) {
+    effectiveSystemPrompt = `${systemPrompt}\n\n${buildSummarySystemMessage(session.summary)}`;
+  }
+
+  // Check if we need to trigger compaction on this request
+  let pendingCompaction: { summary: string; compactedBeforeMessageId: string } | null = null;
+
+  if (shouldCompact(session.lastPromptTokens)) {
+    const dbMessages = await db.query.chatMessages.findMany({
+      where: eq(chatMessages.sessionId, sessionId),
+      orderBy: (m, { asc }) => [asc(m.createdAt)],
+    });
+
+    if (dbMessages.length > 8) {
+      try {
+        console.log(
+          `[Chat] Compacting session ${sessionId} (promptTokens: ${session.lastPromptTokens})`
+        );
+        const compactionResult = await compactMessages({
+          dbMessages,
+          existingSummary: session.summary,
+          courseCode: course?.code ?? 'Unknown',
+          courseTitle: course?.title ?? 'Unknown',
+          apiKey,
+        });
+        console.log(
+          `[Chat] Compaction complete, summary: ${compactionResult.summary.length} chars`
+        );
+
+        pendingCompaction = compactionResult;
+        compactedBeforeMessageId = compactionResult.compactedBeforeMessageId;
+
+        // Apply the new summary to this request immediately
+        effectiveSystemPrompt = `${systemPrompt}\n\n${buildSummarySystemMessage(compactionResult.summary)}`;
+      } catch (err) {
+        console.error(`[Chat] Compaction failed, continuing with full context:`, err);
+      }
+    }
+  }
+
+  // Build model messages, filtering out compacted messages if we have a boundary
+  let convertedMessages = await convertToModelMessages(messages);
+
+  if (compactedBeforeMessageId) {
+    // Find the boundary in frontend messages — messages are ordered chronologically.
+    // The frontend sends UIMessages with `id` fields that match DB message IDs.
+    // Find the index of the compaction boundary message and keep only messages from that point.
+    const boundaryIndex = messages.findIndex(
+      (m) => m.id === compactedBeforeMessageId
+    );
+    if (boundaryIndex > 0) {
+      convertedMessages = await convertToModelMessages(
+        messages.slice(boundaryIndex)
+      );
+    }
+  }
+
   const modelMessages = pruneMessages({
-    messages: await convertToModelMessages(messages),
+    messages: convertedMessages,
     toolCalls: 'before-last-8-messages',
     emptyMessages: 'remove',
   });
@@ -126,7 +194,7 @@ export async function POST(req: Request) {
         model: openrouter.chat('deepseek/deepseek-v3.2', {
           usage: { include: true },
         }),
-        system: systemPrompt,
+        system: effectiveSystemPrompt,
         messages: modelMessages,
         tools: {
           search_course_materials: tool({
@@ -221,6 +289,14 @@ export async function POST(req: Request) {
               .set({
                 updatedAt: new Date(),
                 ...(promptTokens ? { lastPromptTokens: promptTokens } : {}),
+                ...(pendingCompaction
+                  ? {
+                      summary: pendingCompaction.summary,
+                      compactedAt: new Date(),
+                      compactedBeforeMessageId:
+                        pendingCompaction.compactedBeforeMessageId,
+                    }
+                  : {}),
               })
               .where(eq(chatSessions.id, sessionId));
           });
