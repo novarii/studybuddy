@@ -14,6 +14,10 @@ export const useChatSessions = (courseId: string | undefined) => {
   // Track newly created sessions that don't exist in backend yet
   const newSessionIds = useRef<Set<string>>(new Set());
 
+  // Track current courseId so async fetches can detect staleness
+  const courseIdRef = useRef(courseId);
+  courseIdRef.current = courseId;
+
   // Fetch sessions for the current course
   const fetchSessions = useCallback(async () => {
     if (!courseId) {
@@ -30,11 +34,16 @@ export const useChatSessions = (courseId: string | undefined) => {
       if (!token) throw new Error("Not authenticated");
 
       const response = await api.sessions.list(token, courseId);
+      // Discard result if courseId changed during the fetch
+      if (courseIdRef.current !== courseId) return;
       setSessions(response.sessions);
     } catch (err) {
+      if (courseIdRef.current !== courseId) return;
       setError(err instanceof Error ? err : new Error("Failed to fetch sessions"));
     } finally {
-      setIsLoading(false);
+      if (courseIdRef.current === courseId) {
+        setIsLoading(false);
+      }
     }
   }, [courseId, getToken]);
 

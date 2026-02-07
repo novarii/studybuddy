@@ -149,8 +149,10 @@ export const StudyBuddyClient = () => {
     }
   }, [searchParams, router, toast]);
 
-  // Auto-select first session when sessions load (conditional setState during render)
-  if (!currentSessionId && sessions.length > 0) {
+  // Auto-select first session when sessions load (conditional setState during render).
+  // Verify sessions belong to the current course to avoid selecting stale sessions
+  // from the previous course during the render before fetchSessions completes.
+  if (!currentSessionId && sessions.length > 0 && sessions[0].course_id === currentCourseId) {
     setCurrentSessionId(sessions[0].session_id);
   }
 

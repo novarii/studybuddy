@@ -46,7 +46,7 @@ The legacy Python backend used custom SSE events:
 - `data-rag-source` - Custom event with full source metadata
 - `source-document` - Native Vercel format for UI compatibility
 
-See `.legacy/app/adapters/vercel_stream.py` for the `AgnoVercelAdapter` class that handled this.
+The legacy `AgnoVercelAdapter` class (previously in the old Python backend) handled this.
 
 ### Files to Modify
 
