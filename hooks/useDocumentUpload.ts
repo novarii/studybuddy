@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/lib/api";
 
@@ -32,6 +32,8 @@ export const useDocumentUpload = (courseId: string | undefined) => {
     async (file: File) => {
       if (!courseId) return;
 
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
       const id = generateId();
       const uploadItem: UploadItem = {
         id,
@@ -41,6 +43,15 @@ export const useDocumentUpload = (courseId: string | undefined) => {
       };
 
       setUploads((prev) => [...prev, uploadItem]);
+
+      // Client-side size validation
+      if (file.size > MAX_FILE_SIZE) {
+        updateUpload(id, {
+          status: "error",
+          error: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is 10MB.`,
+        });
+        return;
+      }
 
       try {
         const token = await getToken();
@@ -92,16 +103,26 @@ export const useDocumentUpload = (courseId: string | undefined) => {
     setUploads((prev) => prev.filter((u) => u.status !== "success"));
   }, []);
 
+  // Counter tracks nested dragEnter/dragLeave from child elements
+  // to prevent flickering. Increments on enter, decrements on leave.
+  const dragCounter = useRef(0);
+
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
+    dragCounter.current++;
+    if (dragCounter.current === 1) {
+      setIsDragging(true);
+    }
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -113,6 +134,7 @@ export const useDocumentUpload = (courseId: string | undefined) => {
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      dragCounter.current = 0;
       setIsDragging(false);
 
       const files = Array.from(e.dataTransfer.files);
