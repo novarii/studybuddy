@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
+import { formatVectorLiteral } from '@/lib/db/vector-utils';
 import { embedBatch } from '@/lib/ai/embeddings';
 import type { PageResult } from './page-processor';
 
@@ -85,8 +86,8 @@ export async function insertChunks(
       title: filename,
     };
 
-    // Format embedding as PostgreSQL vector literal
-    const vectorLiteral = `[${chunk.embedding.join(',')}]`;
+    // Format and validate embedding as PostgreSQL vector literal
+    const vectorLiteral = formatVectorLiteral(chunk.embedding);
 
     return sql`(
       ${chunk.content},

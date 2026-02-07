@@ -12,6 +12,7 @@
 import { eq, sql } from 'drizzle-orm';
 
 import { db, lectures } from '@/lib/db';
+import { formatVectorLiteral } from '@/lib/db/vector-utils';
 import { embedBatch } from '@/lib/ai/embeddings';
 import { getUserApiKey } from '@/lib/api-keys/get-user-api-key';
 import { transcribeAudio } from './groq-client';
@@ -127,8 +128,8 @@ export async function ingestChunks(
       title: chunk.title,
     };
 
-    // Format embedding as PostgreSQL vector literal
-    const vectorLiteral = `[${embeddings[index].join(',')}]`;
+    // Format and validate embedding as PostgreSQL vector literal
+    const vectorLiteral = formatVectorLiteral(embeddings[index]);
 
     return sql`(
       ${chunk.text},

@@ -5,7 +5,6 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/api/webhook(.*)",
   "/api/cron(.*)",  // Cron jobs use CRON_SECRET auth, not Clerk
-  "/api/lectures/audio(.*)",  // Audio files for RunPod transcription (lectureId is secret token)
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

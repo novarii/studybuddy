@@ -19,7 +19,7 @@ A **spec** is an atomic source of truth document. It can contain:
 
 ## Spec Lookup Table
 
-*Last updated: 2026-02-04*
+*Last updated: 2026-02-07*
 
 | Spec | Description | Key Topics |
 |------|-------------|------------|
@@ -46,6 +46,7 @@ A **spec** is an atomic source of truth document. It can contain:
 | [resilient-chat-requests.md](./resilient-chat-requests.md) | Resilient chat requests | Background jobs, pending messages, disconnect handling |
 | [audio-channel-detection.md](./audio-channel-detection.md) | Audio channel detection for lectures | SDI stereo probe, channel selection, Whisper hallucination fix |
 | [context-compaction.md](./context-compaction.md) | Context window compaction | Token tracking, conversation summarization, pruneMessages |
+| [security-audit.md](./security-audit.md) | Security audit report | SQL injection, SSRF, auth bypass, file security, remediation |
 
 ---
 

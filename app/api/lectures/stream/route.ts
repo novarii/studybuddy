@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 
 import { checkAndCreateLecture } from '@/lib/lectures/deduplication';
 import { downloadAndProcessLecture } from '@/lib/lectures/pipeline';
+import { validateStreamUrl } from '@/lib/lectures/url-validation';
 
 /**
  * Request body for stream URL upload.
@@ -52,6 +53,15 @@ export async function POST(req: Request) {
   // Validate required fields
   if (!streamUrl) {
     return Response.json({ error: 'streamUrl is required' }, { status: 400 });
+  }
+
+  // Validate stream URL to prevent SSRF attacks
+  const urlValidation = validateStreamUrl(streamUrl);
+  if (!urlValidation.valid) {
+    return Response.json(
+      { error: `Invalid stream URL: ${urlValidation.error}` },
+      { status: 400 }
+    );
   }
 
   if (!sessionId) {
