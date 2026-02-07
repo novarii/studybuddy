@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import {
@@ -12,7 +13,7 @@ import {
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 
-import { db, chatSessions, chatMessages } from '@/lib/db';
+import { db, chatSessions, chatMessages, courses } from '@/lib/db';
 import { searchKnowledge, SYSTEM_PROMPT } from '@/lib/ai';
 import { getUserApiKey } from '@/lib/api-keys';
 import { saveSourcesWithDedup } from '@/lib/sources/deduplicated-sources';
@@ -64,6 +65,15 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Session not found' }, { status: 404 });
   }
 
+  // Look up course info for system prompt context
+  const course = await db.query.courses.findFirst({
+    where: eq(courses.id, courseId),
+  });
+
+  const systemPrompt = course
+    ? `${SYSTEM_PROMPT}\n\nYou are currently helping with the course: "${course.code} - ${course.title}"${course.instructor ? ` (Instructor: ${course.instructor})` : ''}.`
+    : SYSTEM_PROMPT;
+
   // Extract text from the last user message
   const lastMessage = messages[messages.length - 1];
   const userMessageText =
@@ -109,7 +119,7 @@ export async function POST(req: Request) {
     execute: async ({ writer }) => {
       const result = streamText({
         model: openrouter.chat('deepseek/deepseek-v3.2'),
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: modelMessages,
         tools: {
           search_course_materials: tool({
@@ -173,27 +183,29 @@ export async function POST(req: Request) {
             })
             .returning();
 
-          // Save sources with deduplication at course level
-          if (collectedSources.length > 0 && savedAssistantMsg) {
-            try {
-              console.log(`[Chat] Saving ${collectedSources.length} sources for message ${savedAssistantMsg.id}`);
-              await saveSourcesWithDedup(
-                collectedSources,
-                savedAssistantMsg.id,
-                sessionId,
-                courseId
-              );
-              console.log(`[Chat] Sources saved successfully`);
-            } catch (err) {
-              console.error(`[Chat] Failed to save sources:`, err);
+          // Use after() to save sources and update timestamp — these must
+          // complete even if the client disconnects or switches sessions
+          after(async () => {
+            if (collectedSources.length > 0 && savedAssistantMsg) {
+              try {
+                console.log(`[Chat] Saving ${collectedSources.length} sources for message ${savedAssistantMsg.id}`);
+                await saveSourcesWithDedup(
+                  collectedSources,
+                  savedAssistantMsg.id,
+                  sessionId,
+                  courseId
+                );
+                console.log(`[Chat] Sources saved successfully`);
+              } catch (err) {
+                console.error(`[Chat] Failed to save sources:`, err);
+              }
             }
-          }
 
-          // Update session timestamp
-          await db
-            .update(chatSessions)
-            .set({ updatedAt: new Date() })
-            .where(eq(chatSessions.id, sessionId));
+            await db
+              .update(chatSessions)
+              .set({ updatedAt: new Date() })
+              .where(eq(chatSessions.id, sessionId));
+          });
         },
       });
 
