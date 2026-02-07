@@ -10,7 +10,7 @@
 
 import { spawn } from 'child_process';
 import { stat, unlink, readdir, mkdir } from 'fs/promises';
-import { join, dirname } from 'path';
+import { join, dirname, parse } from 'path';
 import Groq from 'groq-sdk';
 import { createReadStream } from 'fs';
 
@@ -305,8 +305,8 @@ async function splitAudioIntoChunks(
 
   console.log(`[AudioChunking] Splitting into ${numChunks} chunks (${chunkLengthSeconds}s each, ${overlapSeconds}s overlap)`);
 
-  // Create chunks directory
-  const chunksDir = join(dirname(audioPath), 'chunks');
+  // Create chunks directory unique to this audio file to avoid collisions
+  const chunksDir = join(dirname(audioPath), `chunks-${parse(audioPath).name}`);
   await mkdir(chunksDir, { recursive: true });
 
   const chunks: ChunkInfo[] = [];
