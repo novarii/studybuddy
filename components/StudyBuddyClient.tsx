@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { SunIcon, MoonIcon, LoaderIcon } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar/Sidebar";
@@ -234,19 +234,29 @@ export const StudyBuddyClient = () => {
     }
   };
 
-  // Modified sendMessage to create session if none exists
-  const handleSendMessage = useCallback(async (message: string) => {
-    let sessionId = currentSessionId;
+  // Pending message: queued when user sends with no active session.
+  // After session creation + re-render, the useEffect below fires the send.
+  const pendingMessageRef = useRef<string | null>(null);
 
-    // If no session, create one first
-    if (!sessionId) {
-      sessionId = await createSession();
-      if (!sessionId) return; // Failed to create
-      setCurrentSessionId(sessionId);
+  useEffect(() => {
+    if (pendingMessageRef.current && currentSessionId) {
+      const message = pendingMessageRef.current;
+      pendingMessageRef.current = null;
+      sendMessage(message);
+    }
+  }, [currentSessionId, sendMessage]);
+
+  const handleSendMessage = useCallback(async (message: string) => {
+    if (currentSessionId) {
+      sendMessage(message);
+      return;
     }
 
-    // Pass sessionId and message directly to sendMessage
-    sendMessage(message, sessionId);
+    // No session — create one and queue the message for after re-render
+    const sessionId = await createSession();
+    if (!sessionId) return;
+    pendingMessageRef.current = message;
+    setCurrentSessionId(sessionId);
   }, [currentSessionId, createSession, sendMessage]);
 
   const handleCitationClick = useCallback((source: RAGSource) => {

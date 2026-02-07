@@ -224,18 +224,10 @@ export const useChat = (
 
   const isLoading = status === "streaming" || status === "submitted";
 
-  // sendMessage accepts message text and optional sessionId override
-  const sendMessage = useCallback(async (messageText: string, overrideSessionId?: string) => {
+  const sendMessage = useCallback(async (messageText: string) => {
     const message = messageText.trim();
     if (!message || !courseId || isLoading) return;
 
-    // Use override if provided (for newly created sessions)
-    const effectiveSessionId = overrideSessionId || sessionIdRef.current;
-    if (overrideSessionId) {
-      sessionIdRef.current = overrideSessionId;
-    }
-
-    // Get cached token (fresh tokens cause performance issues)
     const token = await getCachedToken();
 
     setStreamingSources([]);
@@ -250,8 +242,8 @@ export const useChat = (
     );
 
     // Mark session as created in backend after first message
-    if (effectiveSessionId) {
-      onSessionCreatedRef.current?.(effectiveSessionId);
+    if (sessionIdRef.current) {
+      onSessionCreatedRef.current?.(sessionIdRef.current);
     }
   }, [courseId, isLoading, aiSendMessage, getCachedToken]);
 

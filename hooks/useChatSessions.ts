@@ -21,6 +21,7 @@ export const useChatSessions = (courseId: string | undefined) => {
       return;
     }
 
+    setSessions([]);
     setIsLoading(true);
     setError(null);
 

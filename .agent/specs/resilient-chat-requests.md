@@ -1,150 +1,75 @@
 # Resilient Chat Requests
 
-**Status:** Proposed
+**Status:** Accepted
 
 ## Problem
 
 When a user sends a message and the LLM is streaming a response, if they:
-- Switch to a different session/tab
+- Switch to a different session
 - Refresh the page
 - Close the browser
 
-The response is **lost**. The `onFinish` callback in `/api/chat` never runs because the HTTP request is aborted when the client disconnects.
+The response and its sources could be **lost**. By default, the AI SDK uses backpressure — when the client disconnects, the LLM stream is aborted and `onFinish` never fires, preventing DB persistence.
 
-**Current flow:**
-```
-Client sends message → Server streams response → Client receives → onFinish saves to DB
-                                                       ↑
-                                           Client disconnect = message lost
-```
+## Solution: `consumeStream()`
 
-## Proposed Solutions
+The AI SDK provides `result.consumeStream()` (called without `await`) which removes backpressure and ensures the LLM stream runs to completion server-side, regardless of client state. This guarantees `onFinish` fires and all persistence logic executes.
 
-### Option 1: Background Job Queue (Recommended)
-
-Use **Inngest** (or BullMQ/Trigger.dev) to decouple LLM processing from client connection.
-
-**Flow:**
-```
-Client sends message → Save user message to DB
-                     → Create Inngest job
-                     → Return job ID immediately
-
-Inngest worker (independent):
-                     → Call LLM
-                     → Save assistant message to DB
-                     → Emit completion event
-
-Client:
-                     → Subscribe to updates OR poll for completion
-                     → Display response when ready
-```
-
-**Pros:**
-- Fully resilient - survives any client disconnect
-- Scalable - jobs can be distributed
-- Retryable - failed LLM calls can retry automatically
-
-**Cons:**
-- Additional infrastructure (Inngest account)
-- Streaming UX requires Inngest Realtime (beta) or custom SSE
-- More complex architecture
-
-**Implementation steps:**
-1. `pnpm add inngest`
-2. Create `/lib/inngest/client.ts`
-3. Create `/lib/inngest/functions/process-chat.ts`
-4. Create `/app/api/inngest/route.ts` (serve endpoint)
-5. Modify `/app/api/chat/route.ts` to trigger job
-6. Add polling or subscription on frontend
-7. Update `useChat` hook to handle async responses
-
-**Estimated effort:** 1-2 days
-
----
-
-### Option 2: Pending Message Pattern (Simpler)
-
-Save a "pending" message before streaming, update on completion.
-
-**Flow:**
-```
-Client sends message → Save user message to DB
-                     → Save "pending" assistant message to DB (content = null, status = "pending")
-                     → Start streaming
-                     → onFinish: Update message with real content, status = "complete"
-
-If client disconnects:
-                     → User refreshes, sees "pending" message
-                     → Can retry or message eventually completes
-```
-
-**Schema change:**
-```sql
-ALTER TABLE ai.chat_messages ADD COLUMN status TEXT DEFAULT 'complete';
--- Values: 'pending', 'streaming', 'complete', 'failed'
-```
-
-**Pros:**
-- Minimal refactor
-- Keeps existing streaming UX
-- User at least sees something on refresh
-
-**Cons:**
-- Doesn't actually save the response if server aborts
-- Just a better UX for failure, not a real fix
-
-**Estimated effort:** 2-3 hours
-
----
-
-### Option 3: Fire-and-Forget with Detached Processing
-
-Use Node.js patterns to continue processing after response ends.
-
-**Concept:**
+**Implementation:**
 ```typescript
-// Don't await the LLM processing
-export async function POST(req: Request) {
-  const { sessionId, message } = await req.json();
+const result = streamText({
+  model: openrouter.chat('deepseek/deepseek-v3.2'),
+  messages: modelMessages,
+  onFinish: async ({ response, usage }) => {
+    // This ALWAYS fires, even if client disconnected
+    await db.insert(chatMessages).values({ ... });
+    await saveSourcesWithDedup(...);
+    await db.update(chatSessions).set({ ... });
+  },
+});
 
-  // Save user message
-  await saveUserMessage(sessionId, message);
+// Consume stream server-side so onFinish fires on client disconnect
+result.consumeStream(); // no await!
 
-  // Start processing WITHOUT awaiting
-  processLLMInBackground(sessionId, message).catch(console.error);
-
-  // Return immediately
-  return Response.json({ status: 'processing' });
-}
+writer.merge(result.toUIMessageStream());
 ```
 
-**Pros:**
-- Simple concept
-- No external dependencies
+**Key insight:** All persistence (assistant message, sources, token tracking, compaction metadata) lives directly in `onFinish`, not in `after()`. The `consumeStream()` call is what guarantees execution.
 
-**Cons:**
-- Doesn't work well with serverless/edge (function terminates)
-- Loses streaming UX entirely
-- Unreliable in Next.js environment
+### Why not `after()`?
 
-**Not recommended** for Next.js/Vercel deployment.
+`after()` from `next/server` was tried previously but **silently failed** because:
+1. It was registered *inside* `onFinish`
+2. If `onFinish` never fired (due to stream abort), `after()` was never registered
+3. The assistant message appeared to save intermittently (when LLM finished before client fully disconnected), but sources were consistently lost
 
----
+### What the user sees
 
-## Recommendation
+When switching sessions mid-response and switching back:
+- The completed assistant message appears (loaded from DB)
+- All citations/sources are intact (saved in `onFinish`)
+- No streaming animation (the stream already completed server-side)
 
-**Short-term (Option 2):** Implement pending message pattern for better UX on disconnect. Quick win, 2-3 hours.
+## Stream Resumption (Evaluated, Not Implemented)
 
-**Long-term (Option 1):** Migrate to Inngest for true resilience. Plan for 1-2 days of work when priorities allow.
+The AI SDK supports `useChat({ resume: true })` for reconnecting to active streams, but:
+
+- **Requires Redis** — `resumable-stream` package buffers SSE data in Redis pub/sub
+- **Requires a GET endpoint** — separate route to reconnect (`/api/chat/[id]/stream`)
+- **Incompatible with `stop()`** — cannot use both resume and abort functionality
+- **Marginal UX gain** — only adds the live typing animation on return; the message content is already persisted and displayed via DB load
+
+**Decision:** Not worth the infrastructure cost. `consumeStream()` ensures data integrity, which is the critical requirement.
 
 ## Related Files
 
-- `app/api/chat/route.ts` - Current chat endpoint
-- `hooks/useChat.ts` - Frontend chat hook
-- `lib/db/schema.ts` - Message schema (needs status column for Option 2)
+- `app/api/chat/route.ts` — Chat endpoint with `consumeStream()` + `onFinish` persistence
+- `lib/sources/deduplicated-sources.ts` — Source deduplication and save logic
+- `lib/db/schema.ts` — Message and session schema
 
 ## References
 
-- [Inngest Next.js Guide](https://www.inngest.com/docs/guides/nextjs)
-- [Vercel AI SDK Background Functions](https://sdk.vercel.ai/docs)
+- [AI SDK: Handling client disconnects](https://ai-sdk.dev/docs/ai-sdk-ui/chatbot-message-persistence#handling-client-disconnects)
+- [AI SDK: Stopping streams](https://ai-sdk.dev/docs/advanced/stopping-streams)
+- [AI SDK: Stream abort troubleshooting](https://ai-sdk.dev/docs/troubleshooting/stream-abort-handling)
+- [AI SDK: Resumable streams](https://ai-sdk.dev/docs/ai-sdk-ui/chatbot-resume-streams)

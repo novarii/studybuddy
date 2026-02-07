@@ -1,36 +1,111 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# StudyBuddy Frontend
+
+AI-powered study assistant that helps students learn from their lecture recordings and course slides. Ask questions, get answers with citations, and navigate directly to the relevant lecture moment or slide.
+
+## Tech Stack
+
+- **Next.js 16** (App Router, Turbopack)
+- **React 19** with Server Components
+- **Tailwind CSS v4** + Radix UI primitives
+- **Clerk** for authentication
+- **Vercel AI SDK v6** for streaming chat
+- **Drizzle ORM** with PostgreSQL
+- **OpenRouter** (BYOK) for LLM access
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- pnpm
+- PostgreSQL database
+
+### Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Configure `.env.local` with:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Clerk** keys (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`)
+- **Database** URL (`DATABASE_URL=postgresql://...`)
+- **Encryption key** for API key storage (`ENCRYPTION_KEY`)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Database
 
-## Learn More
+```bash
+pnpm db:generate   # Generate migration from schema changes
+pnpm db:migrate    # Apply pending migrations
+```
 
-To learn more about Next.js, take a look at the following resources:
+All tables live in the `ai` schema.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Run
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm dev           # Development server (http://localhost:3000)
+pnpm build         # Production build
+pnpm start         # Production server
+```
 
-## Deploy on Vercel
+## Architecture
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+app/
+  api/
+    chat/          # Streaming chat with RAG tool calling
+    sessions/      # Chat session CRUD
+    courses/       # Course management + CDCS sync
+    documents/     # PDF upload and processing
+    lectures/      # Lecture transcription pipeline
+    openrouter/    # BYOK key management + OAuth
+    user/          # User preferences
+    cron/          # Scheduled jobs (course sync)
+  page.tsx         # Main app (single-page with 3-column layout)
+components/
+  Sidebar/         # Course selector, session list, theme toggle
+  MainContent/     # Chat messages, input, citations
+  RightPanel/      # PDF viewer, lecture video player
+  Dialogs/         # Course selection, materials management
+  ui/              # Reusable Radix-based components
+lib/
+  ai/              # Embeddings, retrieval, prompts, context compaction
+  db/              # Drizzle schema + client
+  sources/         # Citation deduplication and persistence
+  api-keys.ts      # Encrypted BYOK key management
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### How Chat Works
+
+1. User sends a message
+2. Server calls the LLM (DeepSeek V3.2 via OpenRouter) with a `search_course_materials` tool
+3. LLM decides whether to search — if yes, RAG retrieves relevant slide chunks and lecture transcript segments via pgvector
+4. LLM responds with citations (`[1]`, `[2]`, etc.) linking to specific slides or lecture timestamps
+5. Response streams to the frontend; sources are saved for persistent citations
+6. `consumeStream()` ensures all data persists even if the user navigates away mid-response
+
+### Context Compaction
+
+Long conversations are automatically compacted when prompt tokens exceed 131k. Older messages are summarized by the LLM and replaced with a summary in the context window. The full message history remains in the database and frontend — compaction only affects what the LLM sees.
+
+## Testing
+
+```bash
+pnpm test:run      # Unit tests (Vitest)
+pnpm test:e2e      # E2E tests (Playwright + Clerk)
+pnpm lint          # ESLint
+```
+
+## Deployment
+
+Deployed on **Railway**. Push to `main` triggers automatic deployment.
+
+```bash
+pnpm build         # Always build locally before pushing to catch errors
+```
+
+## Specs
+
+This project follows spec-driven development. See [`.agent/specs/README.md`](.agent/specs/README.md) for the full spec lookup table.
