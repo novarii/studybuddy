@@ -25,7 +25,7 @@ import { getUserApiKey } from '@/lib/api-keys';
 import { saveSourcesWithDedup } from '@/lib/sources/deduplicated-sources';
 import type { RAGSource } from '@/types';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 interface ChatRequestBody {
   messages: UIMessage[];
@@ -213,7 +213,7 @@ export async function POST(req: Request) {
                 lectureId,
                 apiKey,
               });
-              collectedSources = sources;
+              collectedSources.push(...sources);
 
               // Stream sources to frontend immediately after RAG retrieval
               for (const source of sources) {
