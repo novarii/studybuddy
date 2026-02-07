@@ -6,16 +6,10 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { Loader2Icon } from "lucide-react";
 import type { ColorScheme } from "@/types";
 
-// Modern browsers: use Web Worker for off-main-thread PDF parsing
-// Older Safari/iOS: skip worker — pdf.worker.min.mjs uses APIs like
-// Promise.withResolvers and URL.parse that can't be polyfilled inside
-// a Worker context. PDF.js falls back to main-thread parsing instead.
-if (typeof Promise.withResolvers === "function" && typeof URL.parse === "function") {
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url
-  ).toString();
-}
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString();
 
 /** How many pages above/below the viewport to keep rendered */
 const PAGE_BUFFER = 2;
@@ -40,6 +34,7 @@ export default function PdfViewer({
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
   // Page height derived from PDF page dimensions, set before any canvas renders
   const [pageHeight, setPageHeight] = useState<number>(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Track container width via ResizeObserver
   useEffect(() => {
@@ -140,15 +135,27 @@ export default function PdfViewer({
     [colors.accent]
   );
 
+  const onLoadError = useCallback((err: Error) => {
+    console.error("[PdfViewer] Load error:", err);
+    setLoadError(err?.message || String(err));
+  }, []);
+
   const error = useCallback(
     () => (
       <div className="flex items-center justify-center h-full w-full py-12">
-        <p className="text-sm" style={{ color: colors.secondaryText }}>
-          Failed to load PDF
-        </p>
+        <div className="text-center px-4">
+          <p className="text-sm" style={{ color: colors.secondaryText }}>
+            Failed to load PDF
+          </p>
+          {loadError && (
+            <p className="text-xs mt-2 font-mono break-all" style={{ color: colors.secondaryText, opacity: 0.7 }}>
+              {loadError}
+            </p>
+          )}
+        </div>
       </div>
     ),
-    [colors.secondaryText]
+    [colors.secondaryText, loadError]
   );
 
   // Determine which pages should be rendered (visible + buffer)
@@ -171,6 +178,7 @@ export default function PdfViewer({
         loading={loading}
         error={error}
         onLoadSuccess={onDocumentLoadSuccess}
+        onLoadError={onLoadError}
       >
         {numPages > 0 &&
           Array.from({ length: numPages }, (_, i) => {
