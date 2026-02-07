@@ -31,7 +31,7 @@ export default function PdfViewer({
   );
   const [numPages, setNumPages] = useState<number>(0);
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
-  // Estimated page height (updated once first page renders)
+  // Page height derived from PDF page dimensions, set before any canvas renders
   const [pageHeight, setPageHeight] = useState<number>(0);
 
   // Track container width via ResizeObserver
@@ -52,9 +52,10 @@ export default function PdfViewer({
   }, []);
 
   // IntersectionObserver to track which pages are near the viewport
+  // Wait for pageHeight so placeholders have real dimensions before observing
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || numPages === 0) return;
+    if (!container || numPages === 0 || !pageHeight) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -108,19 +109,17 @@ export default function PdfViewer({
   const pdfUrl = `/api/documents/${documentId}/file`;
 
   const onDocumentLoadSuccess = useCallback(
-    ({ numPages: total }: { numPages: number }) => {
-      setNumPages(total);
+    async (pdf: { numPages: number; getPage: (n: number) => Promise<{ getViewport: (opts: { scale: number }) => { width: number; height: number } }> }) => {
+      setNumPages(pdf.numPages);
+      // Read first page dimensions from PDF metadata (no canvas allocation)
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 1 });
+      const width = containerRef.current?.clientWidth ?? 400;
+      const scale = width / viewport.width;
+      setPageHeight(viewport.height * scale);
     },
     []
   );
-
-  // Capture rendered page height from the first page for placeholder sizing
-  const onFirstPageRender = useCallback(() => {
-    const el = pageRefs.current.get(1);
-    if (el && !pageHeight) {
-      setPageHeight(el.getBoundingClientRect().height);
-    }
-  }, [pageHeight]);
 
   const loading = useCallback(
     () => (
@@ -176,8 +175,8 @@ export default function PdfViewer({
                 ref={setPageRef(page)}
                 data-page={page}
                 style={
-                  !render && pageHeight
-                    ? { height: pageHeight, width: containerWidth }
+                  !render
+                    ? { height: pageHeight || (containerWidth ? containerWidth * 0.75 : 400), width: containerWidth }
                     : undefined
                 }
               >
@@ -187,7 +186,6 @@ export default function PdfViewer({
                     width={containerWidth}
                     renderAnnotationLayer={false}
                     renderTextLayer={false}
-                    onRenderSuccess={page === 1 ? onFirstPageRender : undefined}
                   />
                 )}
               </div>
