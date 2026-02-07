@@ -1,4 +1,3 @@
-import { after } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import {
@@ -258,50 +257,52 @@ export async function POST(req: Request) {
             })
             .returning();
 
-          // Use after() to save sources and update timestamp — these must
-          // complete even if the client disconnects or switches sessions
-          after(async () => {
-            if (collectedSources.length > 0 && savedAssistantMsg) {
-              try {
-                console.log(`[Chat] Saving ${collectedSources.length} sources for message ${savedAssistantMsg.id}`);
-                await saveSourcesWithDedup(
-                  collectedSources,
-                  savedAssistantMsg.id,
-                  sessionId,
-                  courseId
-                );
-                console.log(`[Chat] Sources saved successfully`);
-              } catch (err) {
-                console.error(`[Chat] Failed to save sources:`, err);
-              }
+          // Save sources — consumeStream() guarantees onFinish fires even
+          // if the client disconnects, so this always runs
+          if (collectedSources.length > 0 && savedAssistantMsg) {
+            try {
+              console.log(`[Chat] Saving ${collectedSources.length} sources for message ${savedAssistantMsg.id}`);
+              await saveSourcesWithDedup(
+                collectedSources,
+                savedAssistantMsg.id,
+                sessionId,
+                courseId
+              );
+              console.log(`[Chat] Sources saved successfully`);
+            } catch (err) {
+              console.error(`[Chat] Failed to save sources:`, err);
             }
+          }
 
-            // Track token usage for context compaction visibility
-            const promptTokens = usage?.inputTokens
-              ?? (providerMetadata?.openrouter as { usage?: { promptTokens?: number } })?.usage?.promptTokens;
+          // Track token usage and persist compaction/session metadata
+          const promptTokens = usage?.inputTokens
+            ?? (providerMetadata?.openrouter as { usage?: { promptTokens?: number } })?.usage?.promptTokens;
 
-            if (promptTokens) {
-              console.log(`[Chat] Session ${sessionId}: ${promptTokens} prompt tokens`);
-            }
+          if (promptTokens) {
+            console.log(`[Chat] Session ${sessionId}: ${promptTokens} prompt tokens`);
+          }
 
-            await db
-              .update(chatSessions)
-              .set({
-                updatedAt: new Date(),
-                ...(promptTokens ? { lastPromptTokens: promptTokens } : {}),
-                ...(pendingCompaction
-                  ? {
-                      summary: pendingCompaction.summary,
-                      compactedAt: new Date(),
-                      compactedBeforeMessageId:
-                        pendingCompaction.compactedBeforeMessageId,
-                    }
-                  : {}),
-              })
-              .where(eq(chatSessions.id, sessionId));
-          });
+          await db
+            .update(chatSessions)
+            .set({
+              updatedAt: new Date(),
+              ...(promptTokens ? { lastPromptTokens: promptTokens } : {}),
+              ...(pendingCompaction
+                ? {
+                    summary: pendingCompaction.summary,
+                    compactedAt: new Date(),
+                    compactedBeforeMessageId:
+                      pendingCompaction.compactedBeforeMessageId,
+                  }
+                : {}),
+            })
+            .where(eq(chatSessions.id, sessionId));
         },
       });
+
+      // Consume the stream server-side so onFinish fires even if the
+      // client disconnects (e.g. user switches sessions mid-response)
+      result.consumeStream();
 
       // Merge the LLM stream into the UI message stream
       writer.merge(result.toUIMessageStream());
