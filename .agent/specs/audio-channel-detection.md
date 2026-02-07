@@ -4,7 +4,7 @@
 
 ## Problem
 
-Panopto SDI (Serial Digital Interface) captures can have speech on one stereo channel and noise/garbage on the other. This causes Whisper to hallucinate random text in random languages, even with lossless FLAC encoding.
+Panopto SDI (Serial Digital Interface) captures can have speech on one stereo channel and noise/garbage on the other. This causes Whisper to hallucinate random text in random languages, regardless of encoding format.
 
 ### Root Cause (Investigated 2026-02-06)
 
@@ -20,6 +20,7 @@ Panopto SDI (Serial Digital Interface) captures can have speech on one stereo ch
 | 16kHz stereo FLAC | Good | -0.9 to -3.5 | Garbage |
 | 16kHz mono downmix (`-ac 1`) FLAC | Garbage | N/A | Garbage |
 | 16kHz left channel only (`pan=mono\|c0=c0`) FLAC | Good | -0.1 to -0.2 | Perfect |
+| 16kHz left channel only (`pan=mono\|c0=c0`) OGG Vorbis | Good | -0.1 to -0.4 | Perfect |
 
 ### Key Insight
 
@@ -33,8 +34,8 @@ Humans naturally focus on the speech channel and ignore noise. Whisper processes
 Audio downloaded → ffprobe channel count
   → If mono: proceed to chunking as-is
   → If stereo:
-      1. Extract 30s snippet of left channel (c0) → FLAC
-      2. Extract 30s snippet of right channel (c1) → FLAC
+      1. Extract 30s snippet of left channel (c0) → OGG
+      2. Extract 30s snippet of right channel (c1) → OGG
       3. Send both to Groq Whisper
       4. Compare avg_logprob across segments
       5. Pick channel with better (less negative) score
@@ -63,7 +64,7 @@ async function probeChannel(
   startSeconds: number = 30 // skip first 30s to avoid intro silence
 ): Promise<{ avgLogprob: number }> {
   // 1. Extract 30s snippet of specific channel:
-  //    ffmpeg -y -ss {startSeconds} -i {audioPath} -t 30 -af "pan=mono|c0=c{channel}" -ar 16000 -c:a flac {tmpPath}
+  //    ffmpeg -y -ss {startSeconds} -i {audioPath} -t 30 -af "pan=mono|c0=c{channel}" -ar 16000 -c:a libvorbis -q:a 4 {tmpPath}
   //
   // 2. Send to Groq Whisper (reuse existing transcribeChunk pattern)
   //
@@ -96,17 +97,17 @@ Add optional `channel` parameter. When set, add `-af "pan=mono|c0=c{channel}"` t
 
 Current chunk ffmpeg args:
 ```
--y -ss {start} -i {audioPath} -t {duration} -ar 16000 -c:a flac {chunkPath}
+-y -ss {start} -i {audioPath} -t {duration} -ar 16000 -c:a libvorbis -q:a 4 {chunkPath}
 ```
 
 With channel selection:
 ```
--y -ss {start} -i {audioPath} -t {duration} -af "pan=mono|c0=c{channel}" -ar 16000 -c:a flac {chunkPath}
+-y -ss {start} -i {audioPath} -t {duration} -af "pan=mono|c0=c{channel}" -ar 16000 -c:a libvorbis -q:a 4 {chunkPath}
 ```
 
 Without channel selection (mono input):
 ```
--y -ss {start} -i {audioPath} -t {duration} -ar 16000 -c:a flac {chunkPath}
+-y -ss {start} -i {audioPath} -t {duration} -ar 16000 -c:a libvorbis -q:a 4 {chunkPath}
 ```
 
 #### 5. Update `transcribeWithChunking` entry point
@@ -125,9 +126,8 @@ export async function transcribeWithChunking(audioPath: string): Promise<Transcr
 
 ### Chunk Duration & Encoding
 
-- **Encoding:** FLAC (lossless) at 16kHz
-- **Mono chunks (after channel selection):** ~15MB per 10-min chunk → fits within Groq 25MB limit. Use `DEFAULT_CHUNK_LENGTH_SECONDS = 600`
-- **Stereo chunks (if both channels are good):** ~31MB per 10-min chunk → exceeds limit. Use 5-min chunks (300s) or always extract single channel after probe
+- **Encoding:** OGG Vorbis (`-c:a libvorbis -q:a 4`) at 16kHz — 10-15x smaller than FLAC with no quality difference for Whisper
+- **Mono chunks (after channel selection):** ~1-1.5MB per 10-min chunk → well within Groq 25MB limit. Use `DEFAULT_CHUNK_LENGTH_SECONDS = 600`
 
 **Recommendation:** Always extract the winning channel as mono. Even when both channels score equally (normal stereo), extracting one channel is safe and keeps chunk sizes small. This simplifies the logic — no need for separate stereo vs mono chunk durations.
 
@@ -137,7 +137,7 @@ export async function transcribeWithChunking(audioPath: string): Promise<Transcr
 |------|----------|
 | Mono input | Skip probe, chunk as-is |
 | Both channels score similarly | Pick left (channel 0) — both are fine |
-| First 30s is silence | Start probe at 30s into the audio (skip intro) |
+| Intro silence/jingles | Probe from midpoint of audio to hit real content |
 | Probe snippet too small (<5s) | Skip probe, default to left channel |
 | Groq probe call fails | Default to left channel, log warning |
 | Audio shorter than 60s | Won't hit chunking path (file < 10MB), irrelevant |

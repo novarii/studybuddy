@@ -116,7 +116,7 @@ export async function POST(req: Request) {
 
   const modelMessages = pruneMessages({
     messages: await convertToModelMessages(messages),
-    toolCalls: 'before-last-5-messages',
+    toolCalls: 'before-last-8-messages',
     emptyMessages: 'remove',
   });
 
