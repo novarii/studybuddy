@@ -39,6 +39,7 @@ export default function PdfViewer({
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
   // Page height derived from PDF page dimensions, set before any canvas renders
   const [pageHeight, setPageHeight] = useState<number>(0);
+  const [loadError, setLoadError] = useState<string>("");
 
   // Track container width via ResizeObserver
   useEffect(() => {
@@ -139,15 +140,19 @@ export default function PdfViewer({
     [colors.accent]
   );
 
+  const onLoadError = useCallback((err: Error) => {
+    setLoadError(err?.message || String(err));
+  }, []);
+
   const error = useCallback(
     () => (
-      <div className="flex items-center justify-center h-full w-full py-12">
-        <p className="text-sm" style={{ color: colors.secondaryText }}>
-          Failed to load PDF
+      <div className="flex items-center justify-center h-full w-full py-12 px-4">
+        <p className="text-xs font-mono break-all" style={{ color: colors.secondaryText }}>
+          {loadError || "Failed to load PDF"}
         </p>
       </div>
     ),
-    [colors.secondaryText]
+    [colors.secondaryText, loadError]
   );
 
   // Determine which pages should be rendered (visible + buffer)
@@ -170,6 +175,7 @@ export default function PdfViewer({
         loading={loading}
         error={error}
         onLoadSuccess={onDocumentLoadSuccess}
+        onLoadError={onLoadError}
       >
         {numPages > 0 &&
           Array.from({ length: numPages }, (_, i) => {
