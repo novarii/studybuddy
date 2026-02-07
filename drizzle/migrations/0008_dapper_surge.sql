@@ -1,0 +1,1 @@
+ALTER TABLE "ai"."chat_sessions" ADD COLUMN "last_prompt_tokens" integer;

@@ -123,7 +123,9 @@ export async function POST(req: Request) {
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       const result = streamText({
-        model: openrouter.chat('deepseek/deepseek-v3.2'),
+        model: openrouter.chat('deepseek/deepseek-v3.2', {
+          usage: { include: true },
+        }),
         system: systemPrompt,
         messages: modelMessages,
         tools: {
@@ -159,7 +161,7 @@ export async function POST(req: Request) {
           }),
         },
         stopWhen: stepCountIs(3),
-        onFinish: async ({ response }) => {
+        onFinish: async ({ response, usage, providerMetadata }) => {
           // Extract text content from all assistant messages
           const assistantContent = response.messages
             .filter((m) => m.role === 'assistant')
@@ -206,9 +208,20 @@ export async function POST(req: Request) {
               }
             }
 
+            // Track token usage for context compaction visibility
+            const promptTokens = usage?.inputTokens
+              ?? (providerMetadata?.openrouter as { usage?: { promptTokens?: number } })?.usage?.promptTokens;
+
+            if (promptTokens) {
+              console.log(`[Chat] Session ${sessionId}: ${promptTokens} prompt tokens`);
+            }
+
             await db
               .update(chatSessions)
-              .set({ updatedAt: new Date() })
+              .set({
+                updatedAt: new Date(),
+                ...(promptTokens ? { lastPromptTokens: promptTokens } : {}),
+              })
               .where(eq(chatSessions.id, sessionId));
           });
         },

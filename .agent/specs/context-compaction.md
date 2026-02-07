@@ -50,7 +50,7 @@ User sends message
 
 | Setting | Value | Rationale |
 |---------|-------|-----------|
-| `COMPACTION_THRESHOLD` | 100,000 tokens | ~80% of DeepSeek V3.2's 128k context |
+| `COMPACTION_THRESHOLD` | 131,000 tokens | ~80% of DeepSeek V3.2's 163,840 context |
 | Messages kept after compaction | 8 | Enough recent context for natural conversation |
 | `pruneMessages` tool call retention | Last 8 messages | Matches compaction retention window |
 | Minimum threshold | 50,000 tokens | Don't compact too early |

@@ -30,6 +30,7 @@ export const chatSessions = aiSchema.table(
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
+    lastPromptTokens: integer('last_prompt_tokens'),
   },
   (table) => [
     index('idx_chat_sessions_user_id').on(table.userId),
