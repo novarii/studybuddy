@@ -5,6 +5,7 @@ import {
   streamText,
   tool,
   convertToModelMessages,
+  pruneMessages,
   stepCountIs,
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -113,7 +114,11 @@ export async function POST(req: Request) {
     apiKey,
   });
 
-  const modelMessages = await convertToModelMessages(messages);
+  const modelMessages = pruneMessages({
+    messages: await convertToModelMessages(messages),
+    toolCalls: 'before-last-5-messages',
+    emptyMessages: 'remove',
+  });
 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
