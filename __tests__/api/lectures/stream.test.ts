@@ -32,7 +32,7 @@ describe('POST /api/lectures/stream', () => {
   };
 
   const validRequestBody = {
-    streamUrl: 'https://cloudfront.net/master.m3u8',
+    streamUrl: 'https://university.hosted.panopto.com/Panopto/Podcast/Stream/session-123.m3u8',
     sessionId: 'session-123',
     courseId: 'course-uuid',
     title: 'Test Lecture',
@@ -183,7 +183,7 @@ describe('POST /api/lectures/stream', () => {
         panoptoSessionId: 'session-123',
         title: 'Test Lecture',
         panoptoUrl: 'https://panopto.com/viewer?id=session-123',
-        streamUrl: 'https://cloudfront.net/master.m3u8',
+        streamUrl: 'https://university.hosted.panopto.com/Panopto/Podcast/Stream/session-123.m3u8',
         durationSeconds: undefined,
       });
     });
@@ -202,7 +202,7 @@ describe('POST /api/lectures/stream', () => {
         panoptoSessionId: 'session-123',
         title: 'Test Lecture',
         panoptoUrl: 'https://panopto.com/viewer?id=session-123',
-        streamUrl: 'https://cloudfront.net/master.m3u8',
+        streamUrl: 'https://university.hosted.panopto.com/Panopto/Podcast/Stream/session-123.m3u8',
         durationSeconds: 3600,
       });
     });
@@ -217,7 +217,7 @@ describe('POST /api/lectures/stream', () => {
         lectureId: 'lecture-uuid',
         userId: 'user_123',
         courseId: 'course-uuid',
-        streamUrl: 'https://cloudfront.net/master.m3u8',
+        streamUrl: 'https://university.hosted.panopto.com/Panopto/Podcast/Stream/session-123.m3u8',
       });
     });
   });

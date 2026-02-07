@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
+import { formatVectorLiteral } from '@/lib/db/vector-utils';
 import { embed } from './embeddings';
 import type {
   SearchOptions,
@@ -124,8 +125,8 @@ interface SlideSearchOptions {
 async function searchSlides(options: SlideSearchOptions): Promise<SlideSearchResult[]> {
   const { embedding, userId, courseId, documentId, limit = 5 } = options;
 
-  // Format embedding as PostgreSQL vector literal
-  const vectorLiteral = `[${embedding.join(',')}]`;
+  // Format and validate embedding as PostgreSQL vector literal
+  const vectorLiteral = formatVectorLiteral(embedding);
 
   // Build the query with optional document filter
   const documentFilter = documentId
@@ -181,8 +182,8 @@ interface LectureSearchOptions {
 async function searchLectures(options: LectureSearchOptions): Promise<LectureSearchResult[]> {
   const { embedding, courseId, lectureId, limit = 5 } = options;
 
-  // Format embedding as PostgreSQL vector literal
-  const vectorLiteral = `[${embedding.join(',')}]`;
+  // Format and validate embedding as PostgreSQL vector literal
+  const vectorLiteral = formatVectorLiteral(embedding);
 
   // Build the query with optional lecture filter
   const lectureFilter = lectureId
