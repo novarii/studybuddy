@@ -18,9 +18,9 @@ import { TranscriptionResult, TranscriptionError, WhisperSegment } from './types
 
 /**
  * Default chunk configuration.
- * 10 minute chunks with 10 second overlap as recommended by Groq.
+ * 3 minute chunks to keep FLAC files under 10MB (~51KB/s at 16kHz stereo).
  */
-const DEFAULT_CHUNK_LENGTH_SECONDS = 600; // 10 minutes
+const DEFAULT_CHUNK_LENGTH_SECONDS = 180; // 3 minutes
 const DEFAULT_OVERLAP_SECONDS = 10;
 
 /**
@@ -145,11 +145,12 @@ async function splitAudioIntoChunks(
     const startSeconds = startMs / 1000;
     const durationChunkSeconds = (endMs - startMs) / 1000;
 
-    const chunkPath = join(chunksDir, `chunk_${i.toString().padStart(3, '0')}.mp3`);
+    const chunkPath = join(chunksDir, `chunk_${i.toString().padStart(3, '0')}.flac`);
 
     // Extract chunk using FFmpeg
     // Keep stereo to avoid destroying SDI captures where one channel is noise.
-    // FLAC is too large for Groq's upload limit, so use MP3 at 64kbps.
+    // Use FLAC (lossless) as recommended by Groq docs.
+    // 3-min chunks keep FLAC files under 10MB.
     await new Promise<void>((resolve, reject) => {
       const ffmpeg = spawn('ffmpeg', [
         '-y',
@@ -157,8 +158,7 @@ async function splitAudioIntoChunks(
         '-i', audioPath,
         '-t', durationChunkSeconds.toString(),
         '-ar', '16000',
-        '-c:a', 'libmp3lame',
-        '-b:a', '64k',
+        '-c:a', 'flac',
         chunkPath,
       ]);
 
