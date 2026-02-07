@@ -206,15 +206,19 @@ async function selectBestChannel(
     return null;
   }
 
-  console.log(`[AudioChunking] Detected ${channels} channels, probing...`);
+  // Probe from the middle of the audio to avoid intro silence/jingles
+  const duration = await getAudioDuration(audioPath);
+  const probeStart = Math.max(0, Math.floor(duration / 2) - 15);
+
+  console.log(`[AudioChunking] Detected ${channels} channels, probing from ${probeStart}s...`);
 
   let leftScore: number;
   let rightScore: number;
 
   try {
     [leftScore, rightScore] = await Promise.all([
-      probeChannel(groq, audioPath, 0),
-      probeChannel(groq, audioPath, 1),
+      probeChannel(groq, audioPath, 0, probeStart),
+      probeChannel(groq, audioPath, 1, probeStart),
     ]);
   } catch (err) {
     console.warn('[AudioChunking] Channel probe failed, defaulting to left channel:', err);
