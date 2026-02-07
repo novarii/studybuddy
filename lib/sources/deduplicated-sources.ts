@@ -60,10 +60,14 @@ export async function saveSourcesWithDedup(
     existingSources.map((s) => [s.sourceKey, s.id])
   );
 
-  // Separate new sources from existing ones
-  const newSources = sourcesWithKeys.filter(
-    ({ key }) => !existingKeyMap.has(key)
-  );
+  // Separate new sources from existing ones, deduplicating within the batch
+  // (multiple tool calls can return the same source)
+  const seenKeys = new Set<string>();
+  const newSources = sourcesWithKeys.filter(({ key }) => {
+    if (existingKeyMap.has(key) || seenKeys.has(key)) return false;
+    seenKeys.add(key);
+    return true;
+  });
 
   // Insert new sources into course_sources
   if (newSources.length > 0) {
@@ -83,11 +87,31 @@ export async function saveSourcesWithDedup(
           title: source.title,
         }))
       )
+      .onConflictDoNothing()
       .returning({ id: courseSources.id, sourceKey: courseSources.sourceKey });
 
     // Add new IDs to the map
     for (const row of inserted) {
       existingKeyMap.set(row.sourceKey, row.id);
+    }
+
+    // If onConflictDoNothing skipped any rows, re-fetch their IDs
+    const missingKeys = newSources
+      .filter(({ key }) => !existingKeyMap.has(key))
+      .map(({ key }) => key);
+    if (missingKeys.length > 0) {
+      const missing = await db
+        .select({ id: courseSources.id, sourceKey: courseSources.sourceKey })
+        .from(courseSources)
+        .where(
+          and(
+            eq(courseSources.courseId, courseId),
+            inArray(courseSources.sourceKey, missingKeys)
+          )
+        );
+      for (const row of missing) {
+        existingKeyMap.set(row.sourceKey, row.id);
+      }
     }
   }
 

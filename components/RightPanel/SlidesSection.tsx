@@ -1,11 +1,21 @@
 "use client";
 
 import React from "react";
-import { ChevronUpIcon, ChevronDownIcon, UploadIcon } from "lucide-react";
+import dynamic from "next/dynamic";
+import { ChevronUpIcon, ChevronDownIcon, UploadIcon, Loader2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ColorScheme } from "@/types";
 import { cn } from "@/lib/utils";
+
+const PdfViewer = dynamic(() => import("./PdfViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full w-full py-12">
+      <Loader2Icon className="w-8 h-8 animate-spin opacity-50" />
+    </div>
+  ),
+});
 
 type SlidesSectionProps = {
   isCollapsed: boolean;
@@ -18,8 +28,6 @@ type SlidesSectionProps = {
 };
 
 export const SlidesSection: React.FC<SlidesSectionProps> = ({ isCollapsed, colors, pageNumber, hasMaterials, documentId, onToggle, onUploadClick }) => {
-  // Construct PDF URL from local API route
-  const pdfUrl = documentId ? `/api/documents/${documentId}/file#page=${pageNumber}` : null;
   return (
     <section
       className={cn("flex flex-col border-b transition-all duration-300", isCollapsed ? "flex-none" : "")}
@@ -41,13 +49,12 @@ export const SlidesSection: React.FC<SlidesSectionProps> = ({ isCollapsed, color
       {!isCollapsed && (
         <div className="flex-1 p-4 overflow-hidden">
           <Card className="overflow-hidden h-full flex items-center justify-center" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-            {hasMaterials && pdfUrl ? (
+            {hasMaterials && documentId ? (
               <CardContent className="p-0 h-full w-full">
-                <iframe
-                  src={pdfUrl}
-                  className="w-full h-full border-0"
-                  title="PDF Viewer"
-                  key={`${documentId}-${pageNumber}`}
+                <PdfViewer
+                  documentId={documentId}
+                  pageNumber={pageNumber}
+                  colors={colors}
                 />
               </CardContent>
             ) : hasMaterials ? (
