@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import { SunIcon, MoonIcon, LoaderIcon } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar/Sidebar";
@@ -377,7 +378,8 @@ export const StudyBuddyClient = () => {
       ) : (
         <div className="flex-1 flex flex-col">
           <header className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: colors.border }}>
-            <h2 className="text-lg font-semibold" style={{ color: colors.primaryText }}>
+            <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: colors.primaryText }}>
+              <Image src="/icon.png" alt="" width={24} height={24} />
               StudyBuddy
             </h2>
             <button

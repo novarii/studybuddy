@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { SlidersHorizontalIcon, UploadIcon, PaperclipIcon, XIcon, CheckIcon, AlertCircleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MessageList } from "@/components/Chat/MessageList";
@@ -51,7 +52,8 @@ export const MainContent: React.FC<MainContentProps> = ({
   return (
     <main className="flex-1 flex flex-col opacity-0 translate-y-[-1rem] animate-fade-in [--animation-delay:200ms]">
       <header className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: colors.border }}>
-        <h2 className="text-lg font-semibold" style={{ color: colors.primaryText }}>
+        <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: colors.primaryText }}>
+          <Image src="/icon.png" alt="" width={24} height={24} />
           StudyBuddy
         </h2>
         <Button
