@@ -43,6 +43,11 @@ export async function embed(text: string, apiKey?: string): Promise<number[]> {
   }
 
   const data: EmbeddingResponse = await response.json();
+
+  if (!data.data) {
+    throw new Error(`Embedding response missing data: ${JSON.stringify(data)}`);
+  }
+
   return data.data[0].embedding;
 }
 
@@ -81,6 +86,10 @@ export async function embedBatch(
   }
 
   const data: EmbeddingResponse = await response.json();
+
+  if (!data.data) {
+    throw new Error(`Embedding response missing data: ${JSON.stringify(data)}`);
+  }
 
   // Sort by index to ensure order matches input
   return data.data
