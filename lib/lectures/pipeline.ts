@@ -180,15 +180,20 @@ export async function processLecture(
 
     // Transcribe audio via Groq (direct upload, ~17sec for 1hr lecture)
     const transcriptionResult = await transcribeAudio(audioPath);
+    const transcriptChars = transcriptionResult.transcription.length;
+    console.log(`[LecturePipeline] Transcription: ${transcriptionResult.segments.length} segments, ${transcriptChars} chars`);
 
     // Update status to chunking
     await updateLectureStatus(lectureId, { status: 'chunking' });
 
     // Normalize transcript (remove fillers, detect garbage)
     const normalizedSegments = normalizeTranscript(transcriptionResult.segments);
+    console.log(`[LecturePipeline] After normalization: ${normalizedSegments.length} segments`);
 
     // Chunk transcript (semantic if API key available, else time-based)
     const chunks = await chunkTranscript(normalizedSegments, apiKey);
+    const chunkChars = chunks.reduce((sum, c) => sum + c.text.length, 0);
+    console.log(`[LecturePipeline] Chunked: ${chunks.length} chunks, ${chunkChars} total chars`);
 
     // Ingest chunks into pgvector
     await ingestChunks(chunks, {

@@ -69,6 +69,9 @@ export async function embedBatch(
     throw new Error('No API key provided for embeddings');
   }
 
+  const totalChars = texts.reduce((sum, t) => sum + t.length, 0);
+  console.log(`[Embeddings] Batch request: ${texts.length} texts, ${totalChars} total chars`);
+
   const response = await fetch(OPENROUTER_EMBEDDINGS_URL, {
     method: 'POST',
     headers: {
@@ -82,7 +85,8 @@ export async function embedBatch(
   });
 
   if (!response.ok) {
-    throw new Error(`Embedding failed: ${response.statusText}`);
+    const body = await response.text();
+    throw new Error(`Embedding failed (${response.status}): ${body}`);
   }
 
   const data: EmbeddingResponse = await response.json();
@@ -90,6 +94,8 @@ export async function embedBatch(
   if (!data.data) {
     throw new Error(`Embedding response missing data: ${JSON.stringify(data)}`);
   }
+
+  console.log(`[Embeddings] Got ${data.data.length} embeddings (${data.data[0]?.embedding?.length ?? 0} dims)`);
 
   // Sort by index to ensure order matches input
   return data.data
