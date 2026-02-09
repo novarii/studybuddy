@@ -183,7 +183,7 @@ export async function POST(req: Request) {
 
   const modelMessages = pruneMessages({
     messages: convertedMessages,
-    toolCalls: 'before-last-8-messages',
+    toolCalls: 'all',
     emptyMessages: 'remove',
   });
 
