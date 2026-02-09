@@ -32,8 +32,9 @@ export default function PdfViewer({
   );
   const [numPages, setNumPages] = useState<number>(0);
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
-  // Page height derived from PDF page dimensions, set before any canvas renders
-  const [pageHeight, setPageHeight] = useState<number>(0);
+  // Aspect ratio (height/width) from PDF metadata — pageHeight derived from containerWidth
+  const [pageAspectRatio, setPageAspectRatio] = useState<number>(0);
+  const pageHeight = containerWidth ? containerWidth * pageAspectRatio : 0;
   const [loadError, setLoadError] = useState<string>("");
 
   // Track container width via ResizeObserver
@@ -57,7 +58,7 @@ export default function PdfViewer({
   // Wait for pageHeight so placeholders have real dimensions before observing
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || numPages === 0 || !pageHeight) return;
+    if (!container || numPages === 0 || !pageAspectRatio) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -87,7 +88,7 @@ export default function PdfViewer({
     }
 
     return () => observer.disconnect();
-  }, [numPages, pageHeight]); // Re-attach after pages are measured
+  }, [numPages, pageAspectRatio]); // Re-attach after pages are measured
 
   // Scroll to the target page when pageNumber changes
   useEffect(() => {
@@ -116,9 +117,7 @@ export default function PdfViewer({
       // Read first page dimensions from PDF metadata (no canvas allocation)
       const page = await pdf.getPage(1);
       const viewport = page.getViewport({ scale: 1 });
-      const width = containerRef.current?.clientWidth ?? 400;
-      const scale = width / viewport.width;
-      setPageHeight(viewport.height * scale);
+      setPageAspectRatio(viewport.height / viewport.width);
     },
     []
   );
@@ -164,7 +163,7 @@ export default function PdfViewer({
   );
 
   return (
-    <div ref={containerRef} className="h-full w-full overflow-auto">
+    <div ref={containerRef} className="h-full w-full overflow-auto min-w-0">
       <Document
         file={pdfUrl}
         loading={loading}

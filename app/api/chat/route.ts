@@ -229,7 +229,8 @@ export async function POST(req: Request) {
           }),
         },
         stopWhen: stepCountIs(10),
-        onFinish: async ({ response, usage, providerMetadata }) => {
+        onFinish: async ({ response, usage, providerMetadata, finishReason, steps }) => {
+          console.log(`[Chat] Finish reason: ${finishReason}, steps: ${steps.length}`);
           // Extract text content from all assistant messages
           const assistantContent = response.messages
             .filter((m) => m.role === 'assistant')

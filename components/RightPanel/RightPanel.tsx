@@ -54,7 +54,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         <div className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-10" onMouseDown={onMouseDown} style={{ backgroundColor: "transparent" }} />
       )}
 
-      <aside className="border-l flex flex-col flex-1" style={{ backgroundColor: colors.panel, borderColor: colors.border }}>
+      <aside className="border-l flex flex-col flex-1 min-w-0 overflow-hidden" style={{ backgroundColor: colors.panel, borderColor: colors.border }}>
         {bothCollapsed ? (
           <>
             <div className="flex items-center justify-center p-4 border-b h-[57px]" style={{ borderColor: colors.border }}>
