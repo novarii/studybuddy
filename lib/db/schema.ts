@@ -200,7 +200,7 @@ export const documents = aiSchema.table(
   (table) => [
     index('idx_documents_user_id').on(table.userId),
     index('idx_documents_course_id').on(table.courseId),
-    uniqueIndex('idx_documents_checksum').on(table.checksum),
+    uniqueIndex('idx_documents_user_checksum').on(table.userId, table.checksum),
   ]
 );
 

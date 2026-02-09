@@ -72,9 +72,9 @@ export async function POST(req: Request) {
   // Compute checksum for duplicate detection
   const checksum = computeChecksum(pdfBytes);
 
-  // Check for existing document with same checksum
+  // Check for existing document with same checksum for this user
   const existingDoc = await db.query.documents.findFirst({
-    where: eq(documents.checksum, checksum),
+    where: and(eq(documents.userId, userId), eq(documents.checksum, checksum)),
   });
 
   if (existingDoc) {
