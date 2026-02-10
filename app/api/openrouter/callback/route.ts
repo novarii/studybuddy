@@ -26,18 +26,19 @@ export async function GET(req: Request) {
   const code = url.searchParams.get('code');
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
   const redirectUrl = new URL('/', appUrl || req.url);
+  const errorRedirectUrl = new URL('/onboarding', appUrl || req.url);
 
   if (!code) {
-    redirectUrl.searchParams.set('error', 'oauth_no_code');
-    return Response.redirect(redirectUrl.toString());
+    errorRedirectUrl.searchParams.set('error', 'oauth_no_code');
+    return Response.redirect(errorRedirectUrl.toString());
   }
 
   // Retrieve code_verifier from memory store (keyed by userId)
   const codeVerifier = retrieveVerifier(userId);
 
   if (!codeVerifier) {
-    redirectUrl.searchParams.set('error', 'oauth_expired');
-    return Response.redirect(redirectUrl.toString());
+    errorRedirectUrl.searchParams.set('error', 'oauth_expired');
+    return Response.redirect(errorRedirectUrl.toString());
   }
 
   // Exchange code for API key
@@ -61,8 +62,8 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error('OpenRouter token exchange network error:', error);
-    redirectUrl.searchParams.set('error', 'oauth_exchange_failed');
-    return Response.redirect(redirectUrl.toString());
+    errorRedirectUrl.searchParams.set('error', 'oauth_exchange_failed');
+    return Response.redirect(errorRedirectUrl.toString());
   }
 
   if (!tokenResponse.ok) {
@@ -74,8 +75,8 @@ export async function GET(req: Request) {
       codeLength: code.length,
       verifierLength: codeVerifier.length,
     });
-    redirectUrl.searchParams.set('error', 'oauth_exchange_failed');
-    return Response.redirect(redirectUrl.toString());
+    errorRedirectUrl.searchParams.set('error', 'oauth_exchange_failed');
+    return Response.redirect(errorRedirectUrl.toString());
   }
 
   const { key } = (await tokenResponse.json()) as OpenRouterKeyResponse;

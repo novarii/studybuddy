@@ -6,3 +6,4 @@
  */
 
 export { getUserApiKey } from './get-user-api-key';
+export { hasApiKey } from './has-api-key';
