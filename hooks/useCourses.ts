@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/lib/api";
 import type { Course } from "@/types";
@@ -82,8 +82,11 @@ export const useCourses = () => {
   );
 
   // Get courses that user hasn't added yet
-  const availableCourses = allCourses.filter(
-    (course) => !userCourses.some((uc) => uc.id === course.id)
+  const availableCourses = useMemo(
+    () => allCourses.filter(
+      (course) => !userCourses.some((uc) => uc.id === course.id)
+    ),
+    [allCourses, userCourses]
   );
 
   return {

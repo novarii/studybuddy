@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useDeferredValue } from "react";
 import { BookOpenIcon, CheckIcon, LoaderIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import type { ColorScheme, Course } from "@/types";
 
 type CourseSelectDialogProps = {
@@ -24,7 +24,19 @@ export const CourseSelectDialog: React.FC<CourseSelectDialogProps> = ({
   onSelectCourse,
 }) => {
   const [searchValue, setSearchValue] = useState("");
+  const deferredSearch = useDeferredValue(searchValue);
   const [addingCourseId, setAddingCourseId] = useState<string | null>(null);
+
+  const filteredCourses = useMemo(() => {
+    if (!deferredSearch) return courses;
+    const q = deferredSearch.toLowerCase();
+    return courses.filter(
+      (c) =>
+        c.code.toLowerCase().includes(q) ||
+        c.title.toLowerCase().includes(q) ||
+        c.instructor?.toLowerCase().includes(q)
+    );
+  }, [courses, deferredSearch]);
 
   const handleSelect = async (course: Course) => {
     setAddingCourseId(course.id);
@@ -49,6 +61,7 @@ export const CourseSelectDialog: React.FC<CourseSelectDialogProps> = ({
         </DialogHeader>
 
         <Command
+          shouldFilter={false}
           className="rounded-none border-t"
           style={{ backgroundColor: colors.panel, borderColor: colors.border }}
         >
@@ -69,16 +82,16 @@ export const CourseSelectDialog: React.FC<CourseSelectDialogProps> = ({
               </div>
             ) : (
               <>
-                <CommandEmpty>
+                {filteredCourses.length === 0 && (
                   <div className="py-6 text-center">
                     <BookOpenIcon className="w-8 h-8 mx-auto mb-2" style={{ color: colors.secondaryText }} />
                     <p className="text-sm" style={{ color: colors.secondaryText }}>
                       No courses found
                     </p>
                   </div>
-                </CommandEmpty>
+                )}
                 <CommandGroup>
-                  {courses.map((course) => (
+                  {filteredCourses.map((course) => (
                     <CommandItem
                       key={course.id}
                       value={`${course.code} ${course.title}`}
