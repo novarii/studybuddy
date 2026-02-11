@@ -157,10 +157,6 @@ export const MainContent: React.FC<MainContentProps> = ({
           onSendMessage={onSendMessage}
           onFileSelect={onFileSelect}
         />
-
-        <footer className="text-center text-xs mt-4 flex-shrink-0" style={{ color: colors.secondaryText }}>
-          StudyBuddy@2025 | All rights reserved
-        </footer>
       </div>
     </main>
   );
