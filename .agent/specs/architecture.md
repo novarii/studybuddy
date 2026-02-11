@@ -125,7 +125,6 @@ API client in `lib/api.ts` provides type-safe methods for:
 All requests include `Authorization: Bearer <clerk-jwt>` header.
 
 ## Related Specs
-- [Tech Stack](./tech-stack.md)
-- [UI Component Library](./ui-component-library.md)
-- [Backend Integration](./backend-integration.md)
-- [Layout System](./layout-system.md)
+- [Authentication](./authentication.md)
+- [Markdown Rendering](./markdown-rendering.md)
+- [Streaming Performance](./streaming-performance.md)

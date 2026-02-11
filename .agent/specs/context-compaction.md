@@ -130,6 +130,6 @@ Candidates: `deepseek/deepseek-v3.2` (same model, 128k context) or a cheaper alt
 
 ## Related
 
-- [chat-streaming.md](./chat-streaming.md) — AI SDK integration, streaming setup
-- [message-sources-persistence.md](./message-sources-persistence.md) — how sources are saved and loaded
+- [source-saving-pipeline.md](./source-saving-pipeline.md) — how sources are saved and loaded
 - [resilient-chat-requests.md](./resilient-chat-requests.md) — disconnect handling, after() usage
+- [streaming-performance.md](./streaming-performance.md) — AI SDK streaming optimization

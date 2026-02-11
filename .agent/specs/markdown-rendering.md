@@ -321,8 +321,8 @@ No additional security configuration needed for our use case.
 ## Related Specs
 
 - [Architecture](./architecture.md) - Component hierarchy
-- [Theme System](./theme-system.md) - Dark/light mode integration
-- [Chat Streaming](./chat-streaming.md) - AI SDK integration patterns
+- [Streaming Performance](./streaming-performance.md) - Rendering optimization
+- [Source Saving Pipeline](./source-saving-pipeline.md) - Citation data flow
 
 ## Decisions
 

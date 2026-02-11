@@ -190,8 +190,8 @@ memo(MessageBubble, (prev, next) => {
 ## Related Specs
 
 - [markdown-rendering.md](./markdown-rendering.md) - Streamdown integration
-- [chat-streaming.md](./chat-streaming.md) - AI SDK integration
-- [session-management.md](./session-management.md) - Chat session UI
+- [source-saving-pipeline.md](./source-saving-pipeline.md) - Source persistence during streaming
+- [resilient-chat-requests.md](./resilient-chat-requests.md) - Disconnect handling
 
 ## References
 
