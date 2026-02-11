@@ -38,11 +38,12 @@ A **spec** is an atomic source of truth document. It can contain:
 | [backend-integration.md](./backend-integration.md) | API client | FastAPI integration, error handling, types |
 | [layout-system.md](./layout-system.md) | 3-column layout | Sidebar, MainContent, RightPanel, resizing |
 | [markdown-rendering.md](./markdown-rendering.md) | AI markdown rendering | Streamdown, citations, code highlighting, streaming |
-| [message-sources-persistence.md](./message-sources-persistence.md) | RAG sources persistence | Load sources with messages, historical citations |
+| [message-sources-persistence.md](./message-sources-persistence.md) | ~~Superseded by source-saving-pipeline.md~~ | Load sources with messages, historical citations |
 | [e2e-testing.md](./e2e-testing.md) | E2E testing setup | Playwright, Clerk auth, test patterns |
 | [lecture-citations.md](./lecture-citations.md) | Lecture citation links | Sources in stream, clickable timestamps, video navigation |
 | [streaming-performance.md](./streaming-performance.md) | Streaming performance | Input isolation, token caching, Shiki optimization |
-| [citation-debugging.md](./citation-debugging.md) | Citation debugging guide | Source flow, failure points, debugging steps |
+| [source-saving-pipeline.md](./source-saving-pipeline.md) | Source saving pipeline (end-to-end) | RAG sources, dedup persistence, fragility points, testing checklist |
+| [citation-debugging.md](./citation-debugging.md) | ~~Superseded by source-saving-pipeline.md~~ | Source flow, failure points, debugging steps |
 | [resilient-chat-requests.md](./resilient-chat-requests.md) | Resilient chat requests | Background jobs, pending messages, disconnect handling |
 | [audio-channel-detection.md](./audio-channel-detection.md) | Audio channel detection for lectures | SDI stereo probe, channel selection, Whisper hallucination fix |
 | [context-compaction.md](./context-compaction.md) | Context window compaction | Token tracking, conversation summarization, pruneMessages |

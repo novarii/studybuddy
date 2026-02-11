@@ -1,60 +1,85 @@
 # Message Sources Persistence
 
-**Status:** Implemented
+**Status:** Implemented (Historical)
+**Superseded by:** [source-saving-pipeline.md](./source-saving-pipeline.md) — see that spec for the full pipeline. This spec retained for historical context on the persistence design.
 
 ## Overview
 
-Persist RAG sources in a separate `ai.message_sources` table so citations work when loading message history (page refresh, session switch).
+Persist RAG sources in a two-table deduplication strategy (`ai.course_sources` + `ai.message_source_refs`) so citations work when loading message history (page refresh, session switch).
 
 ## Problem
 
-Currently, RAG sources are streamed via SSE during chat but NOT persisted. When users:
+RAG sources are streamed via SSE during chat but must be persisted for citations to work when users:
 - Refresh the page
 - Switch to another session and back
 - Load chat history
 
-...the citation references `[1]`, `[2]` become non-functional because sources are lost.
+Without persistence, citation references `[1]`, `[2]` become non-functional because sources are lost.
 
 ## Solution
 
-Store sources in a new `ai.message_sources` table, keyed by `message_id`. Load sources when fetching message history.
+Store sources using a two-table deduplication strategy:
+1. **`ai.course_sources`** — Deduplicated pool of unique sources per course
+2. **`ai.message_source_refs`** — Lightweight join table linking messages to course sources
+
+This prevents duplicate storage when multiple messages reference the same slide or lecture timestamp.
 
 ---
 
 ## Database Schema
 
-**Table:** `ai.message_sources`
+### Table: `ai.course_sources`
+
+Deduplicated source pool shared across all messages in a course.
 
 ```sql
-CREATE TABLE IF NOT EXISTS ai.message_sources (
+CREATE TABLE ai.course_sources (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    message_id TEXT NOT NULL,
-    session_id TEXT NOT NULL,
-    source_id TEXT NOT NULL,
-    source_type TEXT NOT NULL,
-    chunk_number INT NOT NULL,
+    course_id UUID NOT NULL,
+    source_key TEXT NOT NULL,                 -- Unique identifier: "doc_{id}_slide_{n}" or "lec_{id}_{start}_{end}"
+    source_type TEXT NOT NULL,                -- 'slide' | 'lecture'
+    document_id UUID,                         -- For slides
+    slide_number INT,                         -- For slides
+    lecture_id UUID,                          -- For lectures
+    start_seconds FLOAT,                      -- For lectures
+    end_seconds FLOAT,                        -- For lectures
     content_preview TEXT,
-    document_id UUID,
-    slide_number INT,
-    lecture_id UUID,
-    start_seconds FLOAT,
-    end_seconds FLOAT,
-    course_id UUID,
-    owner_id UUID,
     title TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT uq_message_source UNIQUE (message_id, source_id)
+    CONSTRAINT idx_course_sources_unique UNIQUE (course_id, source_key)
 );
 
-CREATE INDEX idx_message_sources_message_id ON ai.message_sources(message_id);
-CREATE INDEX idx_message_sources_session_id ON ai.message_sources(session_id);
+CREATE INDEX idx_course_sources_course_id ON ai.course_sources(course_id);
 ```
 
 **Design decisions:**
-- `message_id` is TEXT (Agno generates string UUIDs)
-- `session_id` denormalized for efficient lookups
-- `UNIQUE(message_id, source_id)` prevents duplicates
-- No FK to Agno tables (they manage their own schema)
+- `source_key` is a deterministic unique identifier generated from source fields
+- `UNIQUE(course_id, source_key)` prevents duplicates within a course
+- No FK constraints to chat messages (they're in separate tables)
+
+### Table: `ai.message_source_refs`
+
+Lightweight join table linking messages to deduplicated sources.
+
+```sql
+CREATE TABLE ai.message_source_refs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    message_id TEXT NOT NULL,                 -- UUID stored as TEXT (matches AI SDK format)
+    session_id UUID NOT NULL,                 -- Denormalized for efficient session-level loads
+    course_source_id UUID NOT NULL REFERENCES ai.course_sources(id) ON DELETE CASCADE,
+    chunk_number INT NOT NULL,                -- Citation number [1], [2], etc.
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_message_source_refs_message_id ON ai.message_source_refs(message_id);
+CREATE INDEX idx_message_source_refs_session_id ON ai.message_source_refs(session_id);
+CREATE INDEX idx_message_source_refs_course_source_id ON ai.message_source_refs(course_source_id);
+```
+
+**Design decisions:**
+- `message_id` is TEXT (AI SDK generates string UUIDs)
+- `session_id` denormalized for efficient bulk loads
+- CASCADE DELETE ensures orphaned refs are cleaned up when course sources are deleted
 
 ---
 
@@ -62,165 +87,362 @@ CREATE INDEX idx_message_sources_session_id ON ai.message_sources(session_id);
 
 ### 1. Migration
 
-**File:** `migrations/versions/007_create_message_sources.sql`
+**File:** `drizzle/migrations/0007_known_madripoor.sql`
 
-### 2. New Service
+Creates both `course_sources` and `message_source_refs` tables with indexes and constraints.
 
-**File:** `app/services/message_sources.py`
+### 2. Drizzle ORM Schema
 
-```python
-def save_message_sources(
-    db_session: Session,
-    *,
-    message_id: str,
-    session_id: str,
-    sources: List[RAGSource],
-) -> None:
-    """Persist RAG sources for an assistant message."""
-    # INSERT ... ON CONFLICT DO NOTHING
+**File:** `lib/db/schema.ts` (lines 102-156)
 
-def load_sources_for_messages(
-    db_session: Session,
-    message_ids: List[str],
-) -> dict[str, List[RAGSource]]:
-    """Load sources for multiple messages. Returns message_id -> sources mapping."""
+```typescript
+export const courseSources = aiSchema.table(
+  'course_sources',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    courseId: uuid('course_id').notNull(),
+    sourceKey: text('source_key').notNull(),
+    sourceType: text('source_type').notNull(),
+    documentId: uuid('document_id'),
+    slideNumber: integer('slide_number'),
+    lectureId: uuid('lecture_id'),
+    startSeconds: real('start_seconds'),
+    endSeconds: real('end_seconds'),
+    contentPreview: text('content_preview'),
+    title: text('title'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('idx_course_sources_course_id').on(table.courseId),
+    uniqueIndex('idx_course_sources_unique').on(table.courseId, table.sourceKey),
+  ]
+);
+
+export const messageSourceRefs = aiSchema.table(
+  'message_source_refs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    messageId: text('message_id').notNull(),
+    sessionId: uuid('session_id').notNull(),
+    courseSourceId: uuid('course_source_id')
+      .notNull()
+      .references(() => courseSources.id, { onDelete: 'cascade' }),
+    chunkNumber: integer('chunk_number').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('idx_message_source_refs_message_id').on(table.messageId),
+    index('idx_message_source_refs_session_id').on(table.sessionId),
+    index('idx_message_source_refs_course_source_id').on(table.courseSourceId),
+  ]
+);
 ```
 
-### 3. Adapter Changes
+### 3. Deduplication Service
 
-**File:** `app/adapters/vercel_stream.py`
+**File:** `lib/sources/deduplicated-sources.ts`
 
-Add source collection to `AgnoVercelAdapter`:
+#### Source Key Generation
 
-```python
-class AgnoVercelAdapter:
-    def __init__(self, ...):
-        self._collected_sources: List[RAGSource] = []
-        self._agno_run_id: Optional[str] = None
-
-    def _emit_all_sources(self, sources: List[RAGSource]) -> str:
-        self._collected_sources.extend(sources)
-        # ... existing emit logic ...
-
-    @property
-    def collected_sources(self) -> List[RAGSource]:
-        return self._collected_sources
-
-    @property
-    def agno_run_id(self) -> Optional[str]:
-        """Return the Agno run_id captured from RunCompletedEvent."""
-        return self._agno_run_id
+```typescript
+function generateSourceKey(source: RAGSource): string {
+  if (source.source_type === 'slide' && source.document_id && source.slide_number) {
+    return `doc_${source.document_id}_slide_${source.slide_number}`;
+  }
+  if (source.source_type === 'lecture' && source.lecture_id) {
+    const start = Math.floor(source.start_seconds ?? 0);
+    const end = Math.floor(source.end_seconds ?? 0);
+    return `lec_${source.lecture_id}_${start}_${end}`;
+  }
+  return source.source_id;
+}
 ```
 
-### 4. Schema Updates
+#### Save Sources
 
-**File:** `app/schemas/__init__.py`
-
-```python
-class RAGSourceResponse(BaseModel):
-    source_id: str
-    source_type: str
-    content_preview: str
-    chunk_number: int
-    document_id: Optional[str] = None
-    slide_number: Optional[int] = None
-    lecture_id: Optional[str] = None
-    start_seconds: Optional[float] = None
-    end_seconds: Optional[float] = None
-    course_id: Optional[str] = None
-    title: Optional[str] = None
-
-class MessageResponse(BaseModel):
-    id: str
-    role: str
-    content: str
-    created_at: Optional[datetime] = None
-    sources: Optional[List[RAGSourceResponse]] = None  # NEW
+```typescript
+export async function saveSourcesWithDedup(
+  sources: RAGSource[],
+  messageId: string,
+  sessionId: string,
+  courseId: string
+): Promise<void>
 ```
 
-### 5. Chat Endpoint - Persist Sources
+**Algorithm:**
+1. Generate unique keys for all sources
+2. Query existing `course_sources` for these keys
+3. Insert new sources with `onConflictDoNothing()` (deduplication)
+4. Re-fetch any sources that were skipped by conflict resolution
+5. Create lightweight refs in `message_source_refs` linking message to course sources
 
-**File:** `app/main.py` (~line 621)
+#### Load Sources
 
-After streaming completes, persist sources using the native Agno message ID.
-
-**Key insight:** The adapter generates its own `message_id` for SSE streaming, but Agno stores messages with different IDs. We must use Agno's native ID for sources to match when loading history.
-
-**Agno data model:**
-- `RunCompletedEvent.run_id` identifies the run (agent execution)
-- `session.get_run(run_id)` returns `RunOutput` containing `messages`
-- Each `message` in `run.messages` has its own `id`
-
-**Implementation:**
-
-```python
-async def generate_stream():
-    adapter = AgnoVercelAdapter()
-    agent = None
-    try:
-        agent = create_chat_agent(db=agno_db, tools=[search_tool])
-        stream = agent.run(...)
-        for chunk in adapter.transform_stream_sync(stream):
-            yield chunk
-    finally:
-        # adapter.agno_run_id captured from RunCompletedEvent
-        if adapter.collected_sources and payload.session_id and adapter.agno_run_id and agent:
-            # Traverse: session → run → message to get native message ID
-            session = agent.get_session(session_id=payload.session_id)
-            if session:
-                run = session.get_run(adapter.agno_run_id)
-                if run and run.messages:
-                    for msg in reversed(run.messages):
-                        if msg.role == "assistant" and msg.id:
-                            save_message_sources(
-                                db_session,
-                                message_id=msg.id,  # Native Agno message ID
-                                session_id=payload.session_id,
-                                sources=adapter.collected_sources,
-                            )
-                            break
+```typescript
+export async function loadSourcesForSession(
+  sessionId: string
+): Promise<Record<string, RAGSource[]>>
 ```
 
-**Adapter captures run_id:**
+**Algorithm:**
+1. JOIN `message_source_refs` with `course_sources` WHERE `session_id`
+2. Group results by `message_id`
+3. Return map of `messageId` → `RAGSource[]`
 
-```python
-# In AgnoVercelAdapter._handle_event()
-elif isinstance(event, RunCompletedEvent):
-    if hasattr(event, "run_id") and event.run_id:
-        self._agno_run_id = event.run_id
+### 4. Chat Route - Persist Sources
+
+**File:** `app/api/chat/route.ts` (lines 232-277)
+
+Sources are collected during tool execution and persisted in the `onFinish` callback:
+
+```typescript
+const stream = createUIMessageStream({
+  execute: async ({ writer }) => {
+    const result = streamText({
+      // ... model config ...
+      tools: {
+        search_course_materials: tool({
+          execute: async ({ query }) => {
+            const { context, sources } = await searchKnowledge({
+              query,
+              userId,
+              courseId,
+              documentId,
+              lectureId,
+              apiKey,
+              startIndex: collectedSources.length,
+            });
+            collectedSources.push(...sources);
+
+            // Stream sources to frontend immediately
+            for (const source of sources) {
+              writer.write({
+                type: 'data-rag-source',
+                data: source,
+              });
+            }
+
+            return context;
+          },
+        }),
+      },
+      onFinish: async ({ response }) => {
+        // Extract assistant content
+        const assistantContent = response.messages
+          .filter((m) => m.role === 'assistant')
+          .map((m) => /* extract text */)
+          .join('');
+
+        // Save assistant message to database
+        const [savedAssistantMsg] = await db
+          .insert(chatMessages)
+          .values({
+            sessionId,
+            role: 'assistant',
+            content: assistantContent,
+          })
+          .returning();
+
+        // Save sources with deduplication
+        if (collectedSources.length > 0 && savedAssistantMsg) {
+          await saveSourcesWithDedup(
+            collectedSources,
+            savedAssistantMsg.id,  // Use DB-assigned message ID
+            sessionId,
+            courseId
+          );
+        }
+      },
+    });
+
+    // consumeStream() ensures onFinish fires even if client disconnects
+    result.consumeStream();
+    writer.merge(result.toUIMessageStream());
+  },
+});
 ```
 
-### 6. Message Retrieval - Load Sources
+**Key insight:** `consumeStream()` guarantees `onFinish` executes server-side even if the frontend disconnects, ensuring sources are always persisted.
 
-**File:** `app/main.py` (~line 772)
+### 5. Message Retrieval - Load Sources
 
-```python
-@app.get("/api/sessions/{session_id}/messages")
-async def get_session_messages(..., db: Session = Depends(get_db)):
-    # ... existing session/message fetch ...
+**File:** `app/api/sessions/[id]/messages/route.ts` (lines 32-64)
 
-    message_ids = [m.id for m in filtered_messages if m.id]
-    sources_by_message = load_sources_for_messages(db, message_ids)
+```typescript
+export async function GET(req: Request, { params }: RouteParams) {
+  const { userId } = await auth();
+  const { id: sessionId } = await params;
 
-    return [
-        MessageResponse(
-            ...,
-            sources=[RAGSourceResponse(...) for s in sources_by_message.get(msg.id, [])]
-                    if msg.role == "assistant" else None,
-        )
-        for msg in filtered_messages
-    ]
+  // Verify session ownership
+  const session = await db.query.chatSessions.findFirst({
+    where: and(
+      eq(chatSessions.id, sessionId),
+      eq(chatSessions.userId, userId)
+    ),
+  });
+
+  if (!session) {
+    return Response.json({ error: 'Session not found' }, { status: 404 });
+  }
+
+  // Get all messages
+  const messages = await db.query.chatMessages.findMany({
+    where: eq(chatMessages.sessionId, sessionId),
+    orderBy: [asc(chatMessages.createdAt)],
+  });
+
+  // Load sources from deduplicated tables
+  const sourcesByMessageId = await loadSourcesForSession(sessionId);
+
+  return Response.json({
+    messages: messages.map((msg) => ({
+      id: msg.id,
+      role: msg.role,
+      content: msg.content,
+      createdAt: msg.createdAt.toISOString(),
+      // Transform snake_case to camelCase for API response
+      sources: msg.role === 'assistant'
+        ? (sourcesByMessageId[String(msg.id)] || []).map((src) => ({
+            sourceId: src.source_id,
+            sourceType: src.source_type,
+            chunkNumber: src.chunk_number,
+            contentPreview: src.content_preview,
+            documentId: src.document_id,
+            slideNumber: src.slide_number,
+            lectureId: src.lecture_id,
+            startSeconds: src.start_seconds,
+            endSeconds: src.end_seconds,
+            courseId: src.course_id,
+            title: src.title,
+          }))
+        : undefined,
+    })),
+  });
+}
 ```
 
-### 7. Session Delete - Cleanup Sources
+**Note:** API response uses camelCase, but internal `RAGSource` type uses snake_case.
 
-When deleting a session, also delete its message sources:
+### 6. Session Delete - Cleanup Sources
 
-```python
-@app.delete("/api/sessions/{session_id}")
-async def delete_session(...):
-    delete_sources_for_session(db, session_id)
-    agent.delete_session(session_id=session_id)
+When deleting a session, message sources are automatically cleaned up via CASCADE DELETE on the `course_source_id` foreign key. If a `course_source` becomes orphaned (no refs pointing to it), it remains in the pool for potential reuse by future messages.
+
+---
+
+## Frontend Integration
+
+### Type Definition
+
+**File:** `types/index.ts` (lines 1-14)
+
+```typescript
+export type RAGSource = {
+  source_id: string;
+  source_type: "slide" | "lecture";
+  content_preview: string;
+  chunk_number: number;
+  document_id?: string;
+  slide_number?: number;
+  lecture_id?: string;
+  start_seconds?: number;
+  end_seconds?: number;
+  course_id?: string;
+  title?: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+  isStreaming?: boolean;
+  sources?: RAGSource[];
+};
+```
+
+### Chat Hook
+
+**File:** `hooks/useChat.ts`
+
+Manages sources through three states:
+1. **`streamingSources`** — Collects sources during active streaming
+2. **`sourcesMap`** — Maps message IDs to their persisted sources
+3. **`initialMessages`** — Loaded from API with sources attached
+
+```typescript
+export const useChat = (courseId: string, sessionId: string) => {
+  const [streamingSources, setStreamingSources] = useState<RAGSource[]>([]);
+  const [sourcesMap, setSourcesMap] = useState<Record<string, RAGSource[]>>({});
+
+  const { messages: aiMessages, ... } = useAIChat({
+    onData: (dataPart) => {
+      // Capture RAG sources from SSE events
+      if (dataPart.type === "data-rag-source") {
+        const sourceData = (dataPart as { data: RAGSource }).data;
+        setStreamingSources((prev) => [...prev, sourceData]);
+      }
+    },
+    onFinish: ({ message }) => {
+      // Move streaming sources to persistent map
+      setStreamingSources((currentSources) => {
+        if (currentSources.length > 0) {
+          setSourcesMap((prev) => ({
+            ...prev,
+            [message.id]: currentSources,
+          }));
+        }
+        return [];
+      });
+    },
+  });
+
+  // Load history with sources
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const loadMessages = async () => {
+      const messages = await api.sessions.getMessages(token, sessionId);
+
+      // Build sources map from API response
+      const loadedSourcesMap: Record<string, RAGSource[]> = {};
+      for (const msg of messages) {
+        if (msg.sources && msg.sources.length > 0) {
+          loadedSourcesMap[msg.id] = msg.sources;
+        }
+      }
+      setSourcesMap(loadedSourcesMap);
+      setInitialMessages(/* convert to UIMessage */);
+    };
+
+    loadMessages();
+  }, [sessionId]);
+
+  // Merge sources into messages
+  const messages: ChatMessage[] = aiMessages.map((msg, index) => {
+    const isLastAssistantMessage = msg.role === "assistant" && index === aiMessages.length - 1;
+    const isCurrentlyStreaming = status === "streaming" && isLastAssistantMessage;
+
+    let messageSources: RAGSource[] | undefined;
+    if (msg.role === "assistant") {
+      if (isCurrentlyStreaming) {
+        messageSources = streamingSources.length > 0 ? streamingSources : undefined;
+      } else {
+        messageSources = sourcesMap[msg.id];
+      }
+    }
+
+    return {
+      id: msg.id,
+      role: msg.role,
+      content: /* extract text */,
+      sources: messageSources,
+    };
+  });
+};
 ```
 
 ---
@@ -229,27 +451,18 @@ async def delete_session(...):
 
 | File | Change |
 |------|--------|
-| `migrations/versions/007_create_message_sources.sql` | New migration |
-| `app/services/message_sources_service.py` | New service (save/load/delete) |
-| `app/adapters/vercel_stream.py` | Add `_collected_sources`, `_agno_run_id`, properties |
-| `app/schemas/__init__.py` | Add `RAGSourceResponse`, update `MessageResponse` |
-| `app/main.py` | Persist in chat endpoint, load in messages endpoint, cleanup on delete |
-
----
-
-## Frontend Integration
-
-**File:** `studybuddy-frontend/types/index.ts`
-- Add `sources?: RAGSource[] | null` to `StoredMessage`
-
-**File:** `studybuddy-frontend/hooks/useChat.ts`
-- Add `sourcesMap` state to track sources per message ID
-- Load sources from API response when fetching history
-- Attach sources to messages when rendering
+| `drizzle/migrations/0007_known_madripoor.sql` | New migration creating deduplicated tables |
+| `lib/db/schema.ts` | Add `courseSources`, `messageSourceRefs` Drizzle schemas |
+| `lib/sources/deduplicated-sources.ts` | New service (`saveSourcesWithDedup`, `loadSourcesForSession`) |
+| `app/api/chat/route.ts` | Collect sources during tool execution, persist in `onFinish` |
+| `app/api/sessions/[id]/messages/route.ts` | Load sources via `loadSourcesForSession`, transform to camelCase |
+| `hooks/useChat.ts` | Add `streamingSources`, `sourcesMap`, load sources from API |
+| `types/index.ts` | Define `RAGSource` type (snake_case fields) |
 
 ---
 
 ## Related Specs
 
-- [RAG System](./rag-system.md)
-- [Architecture](./architecture.md)
+- [source-saving-pipeline.md](./source-saving-pipeline.md) — Full end-to-end pipeline (streaming, persistence, loading)
+- [chat-streaming.md](./chat-streaming.md) — AI SDK streaming integration
+- [rag-system.md](./rag-system.md) — RAG retrieval and context formatting

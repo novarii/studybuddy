@@ -124,7 +124,7 @@ export const VideoSection: React.FC<VideoSectionProps> = ({
                   </div>
                   <Button
                     style={{ backgroundColor: colors.accent, color: colors.buttonIcon }}
-                    onClick={() => window.open('https://chrome.google.com/webstore', '_blank')}
+                    onClick={() => window.open('https://chromewebstore.google.com/detail/afeabeabgaecofplgbboknnfopcgkmkb?utm_source=item-share-cb', '_blank')}
                   >
                     <VideoIcon className="w-4 h-4 mr-2" />
                     Get Extension
