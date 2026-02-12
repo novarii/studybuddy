@@ -40,8 +40,7 @@ A **spec** is an atomic source of truth document. It can contain:
 | [context-compaction.md](./context-compaction.md) | Context window compaction | Token tracking, conversation summarization, pruneMessages |
 | [e2e-testing.md](./e2e-testing.md) | E2E testing setup | Playwright, Clerk auth, test patterns |
 | [audio-channel-detection.md](./audio-channel-detection.md) | Audio channel detection for lectures | SDI stereo probe, channel selection, Whisper hallucination fix |
-| [security-audit.md](./security-audit.md) | Security audit report | SQL injection, SSRF, auth bypass, file security, remediation |
-| **Superseded** | | |
+| [security-audit.md](./security-audit.md) | Security audit report | SQL injection, SSRF, auth bypass, file security, remediation || **Superseded** | | |
 | [message-sources-persistence.md](./message-sources-persistence.md) | ~~Superseded by source-saving-pipeline.md~~ | Load sources with messages, historical context |
 | [citation-debugging.md](./citation-debugging.md) | ~~Superseded by source-saving-pipeline.md~~ | Source flow, failure points, debugging steps |
 

@@ -69,6 +69,7 @@ export async function GET(req: Request, { params }: RouteParams) {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="${encodeURIComponent(downloadFilename)}"`,
       'Content-Length': pdfBytes.length.toString(),
+      'Cache-Control': 'private, max-age=86400',
     },
   });
 }
