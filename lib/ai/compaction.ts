@@ -84,7 +84,7 @@ export async function compactMessages({
   const openrouter = createOpenRouter({ apiKey });
 
   const result = await generateText({
-    model: openrouter.chat('deepseek/deepseek-v3.2'),
+    model: openrouter.chat('x-ai/grok-4.1-fast'),
     system: buildCompactionPrompt(courseCode, courseTitle),
     prompt: conversationText,
   });

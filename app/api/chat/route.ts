@@ -190,8 +190,12 @@ export async function POST(req: Request) {
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       const result = streamText({
-        model: openrouter.chat('deepseek/deepseek-v3.2', {
+        model: openrouter.chat('x-ai/grok-4.1-fast', {
           usage: { include: true },
+          provider: {
+            require_parameters: true,
+            allow_fallbacks: true,
+          },
         }),
         system: effectiveSystemPrompt,
         messages: modelMessages,
