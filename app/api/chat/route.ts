@@ -100,6 +100,7 @@ export async function POST(req: Request) {
   // Collected sources during tool execution
   let collectedSources: RAGSource[] = [];
   let toolCallCount = 0;
+  const seenSourceIds = new Set<string>();
 
   // Get user's API key (BYOK required)
   let apiKey: string;
@@ -221,7 +222,11 @@ export async function POST(req: Request) {
                 lectureId,
                 apiKey,
                 startIndex: collectedSources.length,
+                seenSourceIds,
               });
+              for (const source of sources) {
+                seenSourceIds.add(source.source_id);
+              }
               collectedSources.push(...sources);
 
               // Stream sources to frontend immediately after RAG retrieval

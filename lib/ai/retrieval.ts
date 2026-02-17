@@ -241,8 +241,19 @@ async function searchLectures(options: LectureSearchOptions): Promise<LectureSea
  * @param options - Search options including query and context filters
  * @returns Context string and source metadata for RAG
  */
-export async function searchKnowledge(options: SearchOptions & { startIndex?: number }): Promise<SearchResult> {
-  const { query, userId, courseId, documentId, lectureId, apiKey, startIndex = 0 } = options;
+/**
+ * Build a source ID for deduplication (matches the IDs assigned in formatRetrievalContext).
+ */
+function buildSourceId(result: RetrievalResult): string {
+  return result.type === 'slide'
+    ? `slide-${result.documentId}-${result.slideNumber}`
+    : `lecture-${result.lectureId}-${result.startSeconds}`;
+}
+
+export async function searchKnowledge(
+  options: SearchOptions & { startIndex?: number; seenSourceIds?: Set<string> }
+): Promise<SearchResult> {
+  const { query, userId, courseId, documentId, lectureId, apiKey, startIndex = 0, seenSourceIds } = options;
 
   // Get embedding for the query (uses BYOK key if provided)
   const queryEmbedding = await embed(query, apiKey);
@@ -265,10 +276,15 @@ export async function searchKnowledge(options: SearchOptions & { startIndex?: nu
   ]);
 
   // Combine results with type discriminator
-  const allResults: RetrievalResult[] = [
+  let allResults: RetrievalResult[] = [
     ...slideResults.map((r) => ({ type: 'slide' as const, ...r })),
     ...lectureResults.map((r) => ({ type: 'lecture' as const, ...r })),
   ];
+
+  // Dedup against previously seen sources from earlier tool calls
+  if (seenSourceIds && seenSourceIds.size > 0) {
+    allResults = allResults.filter((r) => !seenSourceIds.has(buildSourceId(r)));
+  }
 
   // Format into context and sources, offset by startIndex for multi-call continuity
   return formatRetrievalContext(allResults, startIndex);
