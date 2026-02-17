@@ -99,6 +99,7 @@ export async function POST(req: Request) {
 
   // Collected sources during tool execution
   let collectedSources: RAGSource[] = [];
+  let toolCallCount = 0;
 
   // Get user's API key (BYOK required)
   let apiKey: string;
@@ -210,6 +211,8 @@ export async function POST(req: Request) {
                 .describe('The search query to find relevant course materials'),
             }),
             execute: async ({ query }) => {
+              toolCallCount++;
+              console.log(`[Chat] Tool call #${toolCallCount}: search("${query.slice(0, 80)}")`);
               const { context, sources } = await searchKnowledge({
                 query,
                 userId,
@@ -235,7 +238,7 @@ export async function POST(req: Request) {
         },
         stopWhen: stepCountIs(10),
         onFinish: async ({ response, usage, providerMetadata, finishReason, steps }) => {
-          console.log(`[Chat] Finish reason: ${finishReason}, steps: ${steps.length}`);
+          console.log(`[Chat] Session ${sessionId}: ${toolCallCount} tool calls, ${steps.length} steps, finish: ${finishReason}`);
           // Extract text content from all assistant messages
           const assistantContent = response.messages
             .filter((m) => m.role === 'assistant')
