@@ -50,7 +50,7 @@ export const MainContent: React.FC<MainContentProps> = ({
   const hasCompletedUploads = completedUploads.length > 0;
 
   return (
-    <main className="flex-1 flex flex-col opacity-0 translate-y-[-1rem] animate-fade-in [--animation-delay:200ms]">
+    <main className="flex-1 min-w-0 flex flex-col opacity-0 translate-y-[-1rem] animate-fade-in [--animation-delay:200ms]">
       <header className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: colors.border }}>
         <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: colors.primaryText }}>
           <Image src="/icon.png" alt="" width={24} height={24} />

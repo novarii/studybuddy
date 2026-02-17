@@ -49,7 +49,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({
       mode="streaming"
       isAnimating={isStreaming}
       className={cn(
-        "prose prose-sm dark:prose-invert max-w-none",
+        "prose prose-sm dark:prose-invert max-w-none overflow-x-auto break-words",
         // Override prose defaults to integrate with existing styling
         "prose-p:my-2 prose-p:leading-relaxed",
         "prose-headings:mt-4 prose-headings:mb-2",

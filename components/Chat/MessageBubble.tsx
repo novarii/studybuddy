@@ -43,7 +43,7 @@ export const MessageBubble = memo(
     return (
       <div className="flex justify-start">
         <div
-          className="max-w-[80%] p-3"
+          className="max-w-[80%] min-w-0 p-3"
           style={{
             color: colors.primaryText,
           }}
