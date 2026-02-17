@@ -192,6 +192,7 @@ export async function POST(req: Request) {
       const result = streamText({
         model: openrouter.chat('x-ai/grok-4.1-fast', {
           usage: { include: true },
+          reasoning: { effort: 'medium' },
           provider: {
             require_parameters: true,
             allow_fallbacks: true,
@@ -311,7 +312,7 @@ export async function POST(req: Request) {
       result.consumeStream();
 
       // Merge the LLM stream into the UI message stream
-      writer.merge(result.toUIMessageStream());
+      writer.merge(result.toUIMessageStream({ sendReasoning: true }));
     },
   });
 
