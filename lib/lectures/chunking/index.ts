@@ -39,11 +39,21 @@ export async function chunkTranscript(
     return chunkByTime(segments);
   }
 
-  // Try semantic chunking with fallback
-  try {
-    return await chunkBySemantic(segments, apiKey);
-  } catch (error) {
-    console.warn('Semantic chunking failed, falling back to time-based:', error);
-    return chunkByTime(segments);
+  // Try semantic chunking with retries, then fall back to time-based
+  const MAX_RETRIES = 2;
+  for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
+    try {
+      return await chunkBySemantic(segments, apiKey);
+    } catch (error) {
+      if (attempt <= MAX_RETRIES) {
+        console.warn(`Semantic chunking attempt ${attempt} failed, retrying...`, error);
+      } else {
+        console.warn(`Semantic chunking failed after ${MAX_RETRIES + 1} attempts, falling back to time-based:`, error);
+        return chunkByTime(segments);
+      }
+    }
   }
+
+  // Unreachable, but TypeScript needs it
+  return chunkByTime(segments);
 }
