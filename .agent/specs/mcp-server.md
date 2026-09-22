@@ -13,12 +13,20 @@ StudyBuddy exposes the user's course materials to AI clients (Claude Code, Claud
 
 ## Auth
 
-- Reuses **agent API keys** (`sb_...`, created in Settings > Agent API keys). See `lib/agent-auth.ts`.
-- Accepted headers: `Authorization: Bearer sb_...` (preferred for MCP clients) or `X-API-Key: sb_...`.
-- Missing or invalid key → `401` with `WWW-Authenticate: Bearer`.
-- `/api/mcp(.*)` is a public route in `proxy.ts`. The route authenticates by itself, not through Clerk.
-- The route passes `userId` into the server factory through `authInfo.extra`. Every tool is scoped to that user.
-- OAuth (protected resource metadata / authorization server discovery) is **not** implemented. Clients must support custom headers.
+Two credentials are accepted, resolved in `lib/mcp/oauth.ts` (`authenticateMcpRequest`):
+
+1. **Clerk OAuth access token** (primary). StudyBuddy is the OAuth resource server and Clerk (`clerk.studybuddy.me`) is the authorization server.
+   - Discovery: `GET /.well-known/oauth-protected-resource/api/mcp` (RFC 9728; also served at `/.well-known/oauth-protected-resource`) returns `resource`, `authorization_servers: [<Clerk issuer>]`, `scopes_supported: ["profile","email"]`.
+   - `/.well-known/oauth-authorization-server` mirrors Clerk's RFC 8414 metadata for older clients.
+   - Tokens are verified with `auth({ acceptsToken: 'oauth_token' })`.
+   - Client registration: **CIMD** (Client ID Metadata Documents), which spec 2026-07-28 prefers. Enabled in Clerk Dashboard > OAuth applications > Settings > Client onboarding, with client admission set to "Any compatible CIMD client". Clerk shows a consent screen and requires PKCE S256.
+   - **DCR is off**. It is deprecated in the spec, and Clerk warns it opens a public registration endpoint. Turn it on only if a client you need can't do CIMD.
+2. **Agent API key** (`sb_...`) as `Authorization: Bearer sb_...` or `X-API-Key`, for scripts and clients without OAuth. See `lib/agent-auth.ts`.
+
+- A missing or invalid credential gets `401` with `WWW-Authenticate: Bearer resource_metadata="<metadata URL>", scope="profile email"`.
+- `/api/mcp(.*)` and `/.well-known(.*)` are public routes in `proxy.ts`. Auth happens in the route, not in Clerk middleware.
+- The Clerk issuer is decoded from `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`. The resource URL uses `NEXT_PUBLIC_APP_URL`.
+- The route passes `userId` into the server factory through `authInfo.extra`. The raw credential is never forwarded to tools.
 
 ## Tools
 
@@ -39,12 +47,21 @@ All tools are read-only (`readOnlyHint: true`) and return both `structuredConten
 |------|------|
 | `lib/agent/materials.ts` | User-scoped queries shared by the REST Agent API (`/api/agent/*`) and MCP. Change behavior here so both surfaces stay in sync. |
 | `lib/mcp/server.ts` | `createStudyBuddyMcpServer(userId)`: tool definitions and server instructions |
+| `lib/mcp/oauth.ts` | OAuth/API-key auth, resource + issuer URLs, 401 challenge |
 | `app/api/mcp/route.ts` | Auth + `createMcpHandler(...).fetch` |
+| `app/.well-known/oauth-protected-resource/[[...path]]/route.ts` | RFC 9728 metadata |
+| `app/.well-known/oauth-authorization-server/route.ts` | Mirrored Clerk RFC 8414 metadata |
 | `__tests__/api/mcp/route.test.ts` | End-to-end tests using the real `@modelcontextprotocol/client` v2 against the route handlers |
 
 ## Client configuration
 
-Claude Code:
+OAuth (Claude Code, claude.ai connectors, Cursor): add the URL and sign in when prompted.
+
+```bash
+claude mcp add --transport http studybuddy https://app.studybuddy.me/api/mcp
+```
+
+API key:
 
 ```bash
 claude mcp add --transport http studybuddy https://app.studybuddy.me/api/mcp \

@@ -9,6 +9,10 @@ vi.mock('@/lib/agent-auth', () => ({
   authenticateAgent: vi.fn(),
 }));
 
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn(),
+}));
+
 vi.mock('@/lib/agent/materials', () => ({
   listEnrolledCourses: vi.fn(),
   listCourseLectures: vi.fn(),
@@ -17,6 +21,7 @@ vi.mock('@/lib/agent/materials', () => ({
   searchCourseMaterials: vi.fn(),
 }));
 
+import { auth } from '@clerk/nextjs/server';
 import { authenticateAgent } from '@/lib/agent-auth';
 import {
   listEnrolledCourses,
@@ -24,6 +29,11 @@ import {
   searchCourseMaterials,
 } from '@/lib/agent/materials';
 import { POST, GET, DELETE } from '@/app/api/mcp/route';
+import { GET as getResourceMetadata } from '@/app/.well-known/oauth-protected-resource/[[...path]]/route';
+
+// pk_test_ + base64("clerk.example.com$")
+process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = `pk_test_${Buffer.from('clerk.example.com$').toString('base64')}`;
+process.env.NEXT_PUBLIC_APP_URL = 'https://app.example.com/';
 
 const MCP_URL = 'http://localhost:3000/api/mcp';
 
@@ -37,11 +47,11 @@ const routeFetch = async (
   return handler ? handler(req) : new Response(null, { status: 405 });
 };
 
-async function connectClient() {
+async function connectClient(token = 'sb_test') {
   const client = new Client({ name: 'test-client', version: '1.0.0' });
   const transport = new StreamableHTTPClientTransport(new URL(MCP_URL), {
     fetch: routeFetch,
-    requestInit: { headers: { Authorization: 'Bearer sb_test' } },
+    requestInit: { headers: { Authorization: `Bearer ${token}` } },
   });
   await client.connect(transport);
   return client;
@@ -49,11 +59,13 @@ async function connectClient() {
 
 describe('/api/mcp', () => {
   const mockAuth = authenticateAgent as unknown as ReturnType<typeof vi.fn>;
+  const mockClerkAuth = auth as unknown as ReturnType<typeof vi.fn>;
   let client: Client | undefined;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuth.mockResolvedValue({ userId: 'user_123', keyId: 'key_1' });
+    mockClerkAuth.mockResolvedValue({ isAuthenticated: false, userId: null });
   });
 
   afterEach(async () => {
@@ -73,7 +85,53 @@ describe('/api/mcp', () => {
     );
 
     expect(res.status).toBe(401);
-    expect(res.headers.get('WWW-Authenticate')).toMatch(/^Bearer/);
+    expect(res.headers.get('WWW-Authenticate')).toContain(
+      'resource_metadata="https://app.example.com/.well-known/oauth-protected-resource/api/mcp"'
+    );
+  });
+
+  it('rejects an OAuth token Clerk does not accept', async () => {
+    const res = await POST(
+      new Request(MCP_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer oat_bad',
+        },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+      })
+    );
+
+    expect(res.status).toBe(401);
+    expect(mockClerkAuth).toHaveBeenCalledWith({ acceptsToken: 'oauth_token' });
+    expect(mockAuth).not.toHaveBeenCalled();
+  });
+
+  it('accepts a Clerk OAuth access token', async () => {
+    mockClerkAuth.mockResolvedValue({
+      isAuthenticated: true,
+      userId: 'user_oauth',
+      clientId: 'client_1',
+      scopes: ['profile', 'email'],
+    });
+    vi.mocked(listEnrolledCourses).mockResolvedValue([]);
+
+    client = await connectClient('oat_valid');
+    await client.callTool({ name: 'list_courses', arguments: {} });
+
+    expect(listEnrolledCourses).toHaveBeenCalledWith('user_oauth');
+    expect(mockAuth).not.toHaveBeenCalled();
+  });
+
+  it('serves protected resource metadata pointing at Clerk', async () => {
+    const res = getResourceMetadata(
+      new Request('https://app.example.com/.well-known/oauth-protected-resource/api/mcp')
+    );
+    const body = await res.json();
+
+    expect(body.resource).toBe('https://app.example.com/api/mcp');
+    expect(body.authorization_servers).toEqual(['https://clerk.example.com']);
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
   });
 
   it('lists the StudyBuddy tools in a stable order', async () => {

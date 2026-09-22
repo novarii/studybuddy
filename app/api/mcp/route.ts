@@ -1,14 +1,15 @@
 import { createMcpHandler } from '@modelcontextprotocol/server';
 
-import { authenticateAgent } from '@/lib/agent-auth';
+import { authenticateMcpRequest, unauthorizedResponse } from '@/lib/mcp/oauth';
 import { createStudyBuddyMcpServer } from '@/lib/mcp/server';
 
 /**
  * /api/mcp — StudyBuddy MCP server over Streamable HTTP.
  *
  * Serves MCP 2026-07-28 (stateless, per-request) and falls back to stateless
- * 2025-era serving for older clients. Auth reuses agent API keys: send
- * `Authorization: Bearer sb_...` (or `X-API-Key: sb_...`).
+ * 2025-era serving for older clients. Auth: Clerk OAuth access token
+ * (discovered via /.well-known/oauth-protected-resource/api/mcp) or an
+ * sb_ agent API key.
  *
  * See .agent/specs/mcp-server.md.
  */
@@ -22,23 +23,16 @@ const handler = createMcpHandler(
 );
 
 async function handle(req: Request): Promise<Response> {
-  const agentAuth = await authenticateAgent(req);
-  if (!agentAuth) {
-    return Response.json(
-      { error: 'Invalid or missing API key' },
-      {
-        status: 401,
-        headers: { 'WWW-Authenticate': 'Bearer realm="studybuddy"' },
-      }
-    );
-  }
+  const mcpAuth = await authenticateMcpRequest(req);
+  if (!mcpAuth) return unauthorizedResponse(req);
 
   return handler.fetch(req, {
     authInfo: {
-      token: agentAuth.keyId,
-      clientId: agentAuth.keyId,
-      scopes: [],
-      extra: { userId: agentAuth.userId },
+      // The raw credential is never forwarded to tool handlers.
+      token: mcpAuth.method,
+      clientId: mcpAuth.clientId,
+      scopes: mcpAuth.scopes,
+      extra: { userId: mcpAuth.userId },
     },
   });
 }
