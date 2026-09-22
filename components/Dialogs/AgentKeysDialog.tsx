@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { CheckIcon, CopyIcon, KeyRoundIcon, LoaderIcon, Trash2Icon } from "lucide-react";
+import { CheckIcon, CopyIcon, FileTextIcon, KeyRoundIcon, LoaderIcon, Trash2Icon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { buildAgentSkill } from "@/lib/agent-skill";
 import type { ColorScheme } from "@/types";
 
 type AgentKey = {
@@ -47,6 +47,7 @@ export const AgentKeysDialog: React.FC<AgentKeysDialogProps> = ({
   // Raw key is only returned once, on creation
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [skillCopied, setSkillCopied] = useState(false);
 
   const fetchKeys = useCallback(async () => {
     setIsLoading(true);
@@ -73,6 +74,7 @@ export const AgentKeysDialog: React.FC<AgentKeysDialogProps> = ({
       // Never keep the raw key around after the dialog closes
       setNewKey(null);
       setCopied(false);
+      setSkillCopied(false);
       setLabel("");
     }
   }, [isOpen, fetchKeys]);
@@ -108,6 +110,11 @@ export const AgentKeysDialog: React.FC<AgentKeysDialogProps> = ({
     setCopied(true);
   };
 
+  const handleCopySkill = async () => {
+    await navigator.clipboard.writeText(buildAgentSkill(window.location.origin));
+    setSkillCopied(true);
+  };
+
   const handleRevoke = async (key: AgentKey) => {
     const name = key.label || "this key";
     if (!window.confirm(`Revoke ${name}? Anything using it will stop working.`)) return;
@@ -128,17 +135,13 @@ export const AgentKeysDialog: React.FC<AgentKeysDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         className="max-w-lg"
+        aria-describedby={undefined}
         style={{ backgroundColor: colors.panel, borderColor: colors.border }}
       >
         <DialogHeader>
           <DialogTitle style={{ color: colors.primaryText }}>
             Agent API keys
           </DialogTitle>
-          <DialogDescription style={{ color: colors.secondaryText }}>
-            Let AI agents like Claude Code search your course materials. Send
-            the key in the <code>X-API-Key</code> header to{" "}
-            <code>/api/agent/*</code>.
-          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
@@ -227,6 +230,21 @@ export const AgentKeysDialog: React.FC<AgentKeysDialogProps> = ({
                 </div>
               ))
             )}
+          </div>
+
+          <div
+            className="flex justify-end pt-3 border-t"
+            style={{ borderColor: colors.border }}
+          >
+            <Button
+              variant="outline"
+              onClick={handleCopySkill}
+              className="shrink-0"
+              style={{ borderColor: colors.border, color: colors.primaryText }}
+            >
+              {skillCopied ? <CheckIcon /> : <FileTextIcon />}
+              {skillCopied ? "Copied" : "Copy skill"}
+            </Button>
           </div>
         </div>
       </DialogContent>
