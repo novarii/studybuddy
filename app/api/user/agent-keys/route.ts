@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const label = body.label || null;
+  const label = typeof body.label === 'string' ? body.label.trim().slice(0, 100) || null : null;
 
   // Generate sb_-prefixed key
   const rawKey = `sb_${randomBytes(32).toString('hex')}`;

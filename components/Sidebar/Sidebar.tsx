@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { PanelLeftCloseIcon, PanelLeftOpenIcon, SunIcon, MoonIcon, SettingsIcon, LogOutIcon } from "lucide-react";
+import { PanelLeftCloseIcon, PanelLeftOpenIcon, SunIcon, MoonIcon, SettingsIcon, LogOutIcon, KeyRoundIcon } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,7 @@ type SidebarProps = {
   onSelectSession: (sessionId: string) => void;
   onNewChat: () => void;
   onDeleteSession: (sessionId: string) => void;
+  onOpenAgentKeys: () => void;
 };
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -60,6 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectSession,
   onNewChat,
   onDeleteSession,
+  onOpenAgentKeys,
 }) => {
   const { signOut } = useClerk();
 
@@ -154,6 +156,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 style={{ backgroundColor: colors.panel, borderColor: colors.border }}
               >
                 <DropdownMenuItem
+                  onClick={onOpenAgentKeys}
+                  className="cursor-pointer gap-2"
+                  style={{ color: colors.primaryText }}
+                >
+                  <KeyRoundIcon className="w-4 h-4" />
+                  Agent API keys
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={handleSignOut}
                   className="cursor-pointer gap-2"
                   style={{ color: colors.primaryText }}
@@ -221,6 +231,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 align="end"
                 style={{ backgroundColor: colors.panel, borderColor: colors.border }}
               >
+                <DropdownMenuItem
+                  onClick={onOpenAgentKeys}
+                  className="cursor-pointer gap-2"
+                  style={{ color: colors.primaryText }}
+                >
+                  <KeyRoundIcon className="w-4 h-4" />
+                  Agent API keys
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleSignOut}
                   className="cursor-pointer gap-2"

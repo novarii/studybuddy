@@ -10,6 +10,7 @@ import { RightPanel } from "@/components/RightPanel/RightPanel";
 import { CourseSelectDialog } from "@/components/Dialogs/CourseSelectDialog";
 import { MaterialsDialog } from "@/components/Dialogs/MaterialsDialog";
 import { ConnectApiKeyDialog } from "@/components/Dialogs/ConnectApiKeyDialog";
+import { AgentKeysDialog } from "@/components/Dialogs/AgentKeysDialog";
 import { EmptyState } from "@/components/EmptyState/EmptyState";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +43,7 @@ export const StudyBuddyClient = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isCourseSelectOpen, setIsCourseSelectOpen] = useState(false);
   const [isMaterialsDialogOpen, setIsMaterialsDialogOpen] = useState(false);
+  const [isAgentKeysOpen, setIsAgentKeysOpen] = useState(false);
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
@@ -336,6 +338,7 @@ export const StudyBuddyClient = () => {
             onSelectSession={handleSelectSession}
             onNewChat={handleNewChat}
             onDeleteSession={handleDeleteSession}
+            onOpenAgentKeys={() => setIsAgentKeysOpen(true)}
           />
 
           <MainContent
@@ -422,6 +425,12 @@ export const StudyBuddyClient = () => {
         isOpen={needsApiKey}
         colors={colors}
         onClose={clearApiKeyError}
+      />
+
+      <AgentKeysDialog
+        isOpen={isAgentKeysOpen}
+        colors={colors}
+        onClose={() => setIsAgentKeysOpen(false)}
       />
 
       <Toaster />
