@@ -192,7 +192,7 @@ export async function POST(req: Request) {
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       const result = streamText({
-        model: openrouter.chat('x-ai/grok-4.1-fast', {
+        model: openrouter.chat('deepseek/deepseek-v4-flash', {
           usage: { include: true },
           reasoning: { effort: 'medium' },
           provider: {
