@@ -1,9 +1,5 @@
-import { eq, and, inArray } from 'drizzle-orm';
-
 import { authenticateAgent } from '@/lib/agent-auth';
-import { searchKnowledge, formatTimestamp } from '@/lib/ai';
-import { getUserApiKey } from '@/lib/api-keys';
-import { db, userCourses, lectures } from '@/lib/db';
+import { isEnrolled, searchCourseMaterials } from '@/lib/agent/materials';
 
 /**
  * POST /api/agent/search
@@ -33,88 +29,19 @@ export async function POST(req: Request) {
     );
   }
 
-  // Verify the user is enrolled in this course
-  const enrollment = await db.query.userCourses.findFirst({
-    where: and(
-      eq(userCourses.userId, agentAuth.userId),
-      eq(userCourses.courseId, courseId)
-    ),
-  });
-
-  if (!enrollment) {
+  if (!(await isEnrolled(agentAuth.userId, courseId))) {
     return Response.json(
       { error: 'Not enrolled in this course' },
       { status: 403 }
     );
   }
 
-  // Get embedding API key (user's BYOK or system fallback)
-  const apiKey = await getUserApiKey(agentAuth.userId);
-
-  const { rawResults } = await searchKnowledge({
-    query,
+  const results = await searchCourseMaterials({
     userId: agentAuth.userId,
     courseId,
+    query,
     documentId,
     lectureId,
-    apiKey,
-  });
-
-  if (!rawResults || rawResults.length === 0) {
-    return Response.json({ results: [] });
-  }
-
-  // Batch-fetch Panopto URLs for lecture results
-  const lectureIds = [
-    ...new Set(
-      rawResults
-        .filter((r) => r.type === 'lecture')
-        .map((r) => (r as Extract<typeof r, { type: 'lecture' }>).lectureId)
-    ),
-  ];
-
-  const lectureMap = new Map<string, string>();
-  if (lectureIds.length > 0) {
-    const lectureRecords = await db
-      .select({ id: lectures.id, panoptoUrl: lectures.panoptoUrl })
-      .from(lectures)
-      .where(inArray(lectures.id, lectureIds));
-
-    for (const lec of lectureRecords) {
-      if (lec.panoptoUrl) {
-        lectureMap.set(lec.id, lec.panoptoUrl);
-      }
-    }
-  }
-
-  // Build lean results with full content
-  const results = rawResults.map((result) => {
-    if (result.type === 'lecture') {
-      const timestamp = formatTimestamp(result.startSeconds);
-      const panoptoUrl = lectureMap.get(result.lectureId);
-
-      // Construct timestamped Panopto link
-      let link: string | undefined;
-      if (panoptoUrl) {
-        const url = new URL(panoptoUrl);
-        url.searchParams.set('start', String(Math.floor(result.startSeconds)));
-        link = url.toString();
-      }
-
-      return {
-        content: result.content,
-        source: `${result.title ?? 'Lecture'} @ ${timestamp}`,
-        type: 'lecture' as const,
-        ...(link && { link }),
-      };
-    }
-
-    // Slide source
-    return {
-      content: result.content,
-      source: `${result.title ?? 'Document'} - Slide ${result.slideNumber}`,
-      type: 'slide' as const,
-    };
   });
 
   return Response.json({ results });

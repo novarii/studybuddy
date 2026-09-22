@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhook(.*)",
   "/api/cron(.*)",   // Cron jobs use CRON_SECRET auth, not Clerk
   "/api/agent(.*)",  // Agent API uses X-API-Key auth, not Clerk
+  "/api/mcp(.*)",    // MCP server uses the same agent API keys
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
