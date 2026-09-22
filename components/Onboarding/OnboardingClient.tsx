@@ -52,7 +52,7 @@ export function OnboardingClient() {
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center p-4"
+      className="flex min-h-dvh items-center justify-center p-4"
       style={{ backgroundColor: colors.background }}
     >
       {/* Dark mode toggle */}

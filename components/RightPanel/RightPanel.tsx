@@ -47,7 +47,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
   return (
     <div
-      className={cn("relative flex opacity-0 translate-y-[-1rem] animate-fade-in [--animation-delay:400ms]", isResizing ? "" : "transition-all duration-300")}
+      className={cn("relative flex opacity-0 animate-fade-in [--animation-delay:400ms]", isResizing ? "" : "transition-all duration-300")}
       style={{ width: bothCollapsed ? "60px" : `${panelWidth}px` }}
     >
       {!bothCollapsed && (

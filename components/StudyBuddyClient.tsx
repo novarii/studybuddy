@@ -306,7 +306,7 @@ export const StudyBuddyClient = () => {
   // Show loading state while courses are loading
   if (isCoursesLoading) {
     return (
-      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: colors.background }}>
+      <div className="flex h-dvh items-center justify-center" style={{ backgroundColor: colors.background }}>
         <div className="flex flex-col items-center gap-4">
           <LoaderIcon className="w-8 h-8 animate-spin" style={{ color: colors.accent }} />
           <p style={{ color: colors.secondaryText }}>Loading courses...</p>
@@ -316,7 +316,7 @@ export const StudyBuddyClient = () => {
   }
 
   return (
-    <div className="flex h-screen" style={{ backgroundColor: colors.background }}>
+    <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: colors.background }}>
       {currentCourse ? (
         <>
           <Sidebar

@@ -72,7 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside
       className={cn(
-        "border-r flex flex-col opacity-0 translate-y-[-1rem] animate-fade-in [--animation-delay:0ms] flex-shrink-0",
+        "border-r flex flex-col opacity-0 animate-fade-in [--animation-delay:0ms] flex-shrink-0",
         "transition-all duration-300"
       )}
       style={{
